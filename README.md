@@ -1,6 +1,10 @@
-# Claude Code Assistant with Gemini Methodology
+# Gemini Assistant for VS Code
 
-An intelligent VS Code extension that combines Claude Code CLI capabilities with systematic project analysis and learning, following the Gemini workflow methodology.
+[![Version](https://img.shields.io/visual-studio-marketplace/v/your-publisher.gemini-assistant)](https://marketplace.visualstudio.com/items?itemName=your-publisher.gemini-assistant)
+[![Downloads](https://img.shields.io/visual-studio-marketplace/d/your-publisher.gemini-assistant)](https://marketplace.visualstudio.com/items?itemName=your-publisher.gemini-assistant)
+[![Rating](https://img.shields.io/visual-studio-marketplace/r/your-publisher.gemini-assistant)](https://marketplace.visualstudio.com/items?itemName=your-publisher.gemini-assistant)
+
+An intelligent AI-powered development assistant that leverages Google's Gemini AI to transform how you write code. With deep project understanding, systematic workflows, and adaptive learning, Gemini Assistant acts as your personal AI pair programmer.
 
 ## Features
 
