@@ -1,0 +1,24 @@
+
+claude-gemini-assistant/
+├── package.json                 # Extension manifest and configuration
+├── tsconfig.json               # TypeScript compiler settings
+├── src/
+│   ├── extension.ts            # Main extension entry point
+│   ├── core/
+│   │   ├── claudeCodeInterface.ts    # Interface to Claude Code CLI
+│   │   ├── projectIntelligence.ts    # Deep project understanding
+│   │   ├── memorySystem.ts           # Persistent learning and memory
+│   │   └── geminiWorkflow.ts         # Structured workflow methodology
+│   ├── hooks/
+│   │   ├── intelligentTriggers.ts    # Smart detection of help opportunities
+│   │   ├── errorPatternDetector.ts   # Sophisticated error analysis
+│   │   └── progressMonitor.ts        # Development progress tracking
+│   ├── ui/
+│   │   ├── workflowPanel.ts          # VS Code webview for workflow management
+│   │   └── contextViewer.ts          # Project context visualization
+│   └── types/
+│       └── interfaces.ts             # TypeScript type definitions
+├── resources/                   # Icons and other static assets
+└── out/                        # Compiled JavaScript output
+
+

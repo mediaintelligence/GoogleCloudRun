@@ -1,0 +1,196 @@
+
+{
+  "name": "claude-gemini-assistant",
+  "displayName": "Claude Code Assistant with Gemini Methodology",
+  "description": "Intelligent development assistant combining Claude Code execution with systematic project analysis and learning",
+  "version": "1.0.0",
+  "publisher": "your-publisher-name",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": ["AI", "Other", "Snippets", "Debuggers"],
+  "keywords": ["claude", "ai", "assistant", "development", "automation"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "claude-assistant.startGeminiWorkflow",
+        "title": "Start Gemini Workflow",
+        "category": "Claude Assistant",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "claude-assistant.analyzeProject",
+        "title": "Analyze Project with Claude",
+        "category": "Claude Assistant",
+        "icon": "$(search)"
+      },
+      {
+        "command": "claude-assistant.executeWithContext",
+        "title": "Execute Claude Code with Full Context",
+        "category": "Claude Assistant",
+        "icon": "$(play)"
+      },
+      {
+        "command": "claude-assistant.showProjectMemory",
+        "title": "Show Project Learning History",
+        "category": "Claude Assistant",
+        "icon": "$(book)"
+      },
+      {
+        "command": "claude-assistant.configureWorkflow",
+        "title": "Configure Gemini Workflow Settings",
+        "category": "Claude Assistant",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "claude-assistant.reviewLastExecution",
+        "title": "Review Last Claude Code Execution",
+        "category": "Claude Assistant",
+        "icon": "$(history)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "claude-assistant.startGeminiWorkflow",
+        "key": "ctrl+shift+g",
+        "mac": "cmd+shift+g",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "claude-assistant.executeWithContext",
+        "key": "ctrl+shift+c",
+        "mac": "cmd+shift+c",
+        "when": "editorTextFocus"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "claude-assistant.executeWithContext",
+          "group": "claude@1",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "claude-assistant.startGeminiWorkflow",
+          "group": "claude@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "claude-assistant.analyzeProject",
+          "group": "claude@1",
+          "when": "explorerResourceIsFolder"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "claude-assistant.startGeminiWorkflow"
+        },
+        {
+          "command": "claude-assistant.analyzeProject"
+        },
+        {
+          "command": "claude-assistant.executeWithContext"
+        },
+        {
+          "command": "claude-assistant.showProjectMemory"
+        },
+        {
+          "command": "claude-assistant.configureWorkflow"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Claude Gemini Assistant",
+      "properties": {
+        "claude-assistant.claudeCodePath": {
+          "type": "string",
+          "default": "claude-code",
+          "description": "Path to Claude Code executable (use 'claude-code' if it's in your PATH)"
+        },
+        "claude-assistant.autoAnalyzeProjects": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically analyze new projects when opened"
+        },
+        "claude-assistant.intelligentSuggestions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable intelligent suggestions based on coding patterns"
+        },
+        "claude-assistant.workflowComplexity": {
+          "type": "string",
+          "enum": ["simple", "standard", "comprehensive"],
+          "default": "standard",
+          "description": "Complexity level for Gemini workflow methodology"
+        },
+        "claude-assistant.memoryRetention": {
+          "type": "number",
+          "default": 30,
+          "minimum": 7,
+          "maximum": 365,
+          "description": "Days to retain project memory and learning data"
+        },
+        "claude-assistant.contextWindowSize": {
+          "type": "number",
+          "default": 10,
+          "minimum": 5,
+          "maximum": 50,
+          "description": "Number of recent interactions to include in context"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "claude-assistant",
+          "title": "Claude Assistant",
+          "icon": "$(robot)"
+        }
+      ]
+    },
+    "views": {
+      "claude-assistant": [
+        {
+          "id": "claude-assistant.workflow",
+          "name": "Active Workflow",
+          "type": "webview"
+        },
+        {
+          "id": "claude-assistant.memory",
+          "name": "Project Memory",
+          "type": "tree"
+        },
+        {
+          "id": "claude-assistant.context",
+          "name": "Project Context",
+          "type": "tree"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.70.0",
+    "@types/node": "16.x",
+    "@typescript-eslint/eslint-plugin": "^5.31.0",
+    "@typescript-eslint/parser": "^5.31.0",
+    "eslint": "^8.20.0",
+    "typescript": "^4.7.4"
+  },
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "ignore": "^5.2.0"
+  }
+}

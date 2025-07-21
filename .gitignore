@@ -1,0 +1,72 @@
+# Compiled output
+out/
+dist/
+*.js
+*.js.map
+*.d.ts
+
+# Dependencies
+node_modules/
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Local history
+.history/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editor files
+*.swp
+*.swo
+*~
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Build files
+*.vsix
+.vscode-test/
+
+# Project specific
+.claude-memory/
+*.cache
+*.tmp
+.temp/
+
+# TypeScript
+*.tsbuildinfo
+
+# npm
+package-lock.json
+yarn.lock
+
+# Testing
+.jest/
+__tests__/coverage/
