@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import { ClaudeCodeInterface } from './core/claudeCodeInterface';
+import { ClaudeCodeInterface } from './claude/claudeCodeInterface';
 import { ProjectIntelligence } from './core/projectIntelligence';
 import { MemorySystem } from './core/memorySystem';
-import { GeminiWorkflow } from './core/geminiWorkflow';
+import { GeminiWorkflow } from './gemini/geminiWorkflow';
 import { IntelligentTriggers } from './hooks/intelligentTriggers';
 import { WorkflowPanel } from './ui/workflowPanel';
 import { ContextViewer } from './ui/contextViewer';
