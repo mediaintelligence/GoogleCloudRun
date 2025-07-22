@@ -6,8 +6,8 @@ import {
     TriggerAction 
 } from '../types/interfaces';
 import { ProjectIntelligence } from '../core/projectIntelligence';
-import { ClaudeCodeInterface } from '../core/claudeCodeInterface';
-import { GeminiWorkflow } from '../core/geminiWorkflow';
+import { ClaudeCodeInterface } from '../claude/claudeCodeInterface';
+import { GeminiWorkflow } from '../gemini/geminiWorkflow';
 
 export class IntelligentTriggers {
     private triggers: Map<string, Trigger> = new Map();
