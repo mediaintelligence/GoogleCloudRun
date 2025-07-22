@@ -4,6 +4,7 @@
   "displayName": "Claude Code Assistant with Gemini Methodology",
   "description": "Intelligent development assistant combining Claude Code execution with systematic project analysis and learning",
   "version": "1.0.0",
+  "license": "MIT",
   "publisher": "your-publisher-name",
   "engines": {
     "vscode": "^1.70.0"
