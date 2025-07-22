@@ -8,7 +8,7 @@ The TypeScript compilation completed successfully. Your extension is now ready t
 
 ### Method 1: Command Line (Recommended)
 ```bash
-cd "/Users/bm/Library/CloudStorage/GoogleDrive-ceo@mediaintelligence.ai/My Drive/MIZ/claude-gemini-assistant"
+cd /path/to/claude-gemini-assistant
 code .
 ```
 Then press **F5** in VS Code
