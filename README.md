@@ -40,17 +40,10 @@ An intelligent AI-powered development assistant that leverages Google's Gemini A
 
 ## 📸 Screenshots
 
-### Workflow Management
-![Workflow Panel](resources/screenshots/workflow-panel.png)
-*Systematic development with AI-guided phases*
+- **Workflow Management**: Systematic development with AI-guided phases
+- **Project Analysis**: Deep understanding of your codebase structure
+- **AI Conversations**: Natural language interactions with context awareness
 
-### Project Analysis
-![Project Intelligence](resources/screenshots/project-analysis.png)
-*Deep understanding of your codebase structure*
-
-### AI Conversations
-![Gemini Chat](resources/screenshots/gemini-chat.png)
-*Natural language interactions with context awareness*
 
 ## 🚀 Getting Started
 
