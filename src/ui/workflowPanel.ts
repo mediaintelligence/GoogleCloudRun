@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { Workflow, WorkflowStep, StepResult } from '../types/interfaces';
-import { GeminiWorkflow } from '../core/geminiWorkflow';
+import { GeminiWorkflow } from '../gemini/geminiWorkflow';
 
 export class WorkflowPanel implements vscode.WebviewViewProvider {
     private _view?: vscode.WebviewView;

@@ -7,9 +7,9 @@ import {
     WorkflowPreferences,
     WorkflowArtifact 
 } from '../types/interfaces';
-import { ClaudeCodeInterface } from './claudeCodeInterface';
-import { ProjectIntelligence } from './projectIntelligence';
-import { MemorySystem } from './memorySystem';
+import { ClaudeCodeInterface } from '../claude/claudeCodeInterface';
+import { ProjectIntelligence } from '../core/projectIntelligence';
+import { MemorySystem } from '../core/memorySystem';
 
 export class GeminiWorkflow {
     private currentWorkflow: Workflow | null = null;

@@ -5,7 +5,7 @@ import {
     ProjectContext,
     ExecutionMemory 
 } from '../types/interfaces';
-import { ClaudeCodeInterface } from '../core/claudeCodeInterface';
+import { ClaudeCodeInterface } from '../claude/claudeCodeInterface';
 import { MemorySystem } from '../core/memorySystem';
 import { ProjectIntelligence } from '../core/projectIntelligence';
 
