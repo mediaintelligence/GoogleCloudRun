@@ -1,17 +1,25 @@
 import * as vscode from 'vscode';
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
-import { ClaudeExecutionResult, ProjectContext } from '../types/interfaces';
+import { ClaudeExecutionResult, ProjectContext, ExecutionMemory, LearnedPattern } from '../types/interfaces';
+import { MemorySystem } from '../core/memorySystem';
 
 export class ClaudeCodeInterface {
     private claudePath: string;
     private outputChannel: vscode.OutputChannel;
     private activeProcess: ChildProcess | null = null;
 
-    constructor(private context: vscode.ExtensionContext) {
+    constructor(
+        private context: vscode.ExtensionContext,
+        private memorySystem?: MemorySystem
+    ) {
         const config = vscode.workspace.getConfiguration('claude-assistant');
         this.claudePath = config.get('claudeCodePath') || 'claude';
         this.outputChannel = vscode.window.createOutputChannel('Claude Code');
+    }
+
+    setMemorySystem(memorySystem: MemorySystem): void {
+        this.memorySystem = memorySystem;
     }
 
     async executeCommand(command: string, args: string[] = []): Promise<string> {
@@ -68,8 +76,12 @@ export class ClaudeCodeInterface {
     }
 
     async executeWithContext(code: string, context: ProjectContext): Promise<string> {
-        // Prepare context information
-        const contextPrompt = this.buildContextPrompt(context);
+        // 🔥 NEW: Pre-execution memory lookup
+        const relevantMemories = await this.findRelevantMemories(code, context);
+        const relevantPatterns = await this.findRelevantPatterns(code, context);
+        
+        // Build enhanced context with memories
+        const contextPrompt = this.buildContextPrompt(context, relevantMemories, relevantPatterns);
         const fullPrompt = `${contextPrompt}\n\n${code}`;
 
         // Create a temporary file with the full context
@@ -111,11 +123,109 @@ export class ClaudeCodeInterface {
         }
     }
 
+    private async findRelevantMemories(code: string, context: ProjectContext): Promise<ExecutionMemory[]> {
+        if (!this.memorySystem) {
+            return [];
+        }
+
+        // Extract keywords from the code for memory search
+        const keywords = this.extractKeywords(code);
+        let relevantMemories: ExecutionMemory[] = [];
+
+        // Search for memories using keywords
+        for (const keyword of keywords) {
+            const memories = await this.memorySystem.searchMemories(keyword);
+            relevantMemories = relevantMemories.concat(memories);
+        }
+
+        // Remove duplicates and sort by relevance (most recent first)
+        const uniqueMemories = Array.from(new Map(
+            relevantMemories.map(m => [m.id, m])
+        ).values());
+
+        return uniqueMemories
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, 5); // Top 5 most relevant memories
+    }
+
+    private async findRelevantPatterns(code: string, context: ProjectContext): Promise<LearnedPattern[]> {
+        if (!this.memorySystem) {
+            return [];
+        }
+
+        const patterns = await this.memorySystem.getLearnedPatterns();
+        const keywords = this.extractKeywords(code);
+        
+        return patterns.filter(pattern => {
+            // Check if pattern is relevant to current code
+            const patternLower = pattern.pattern.toLowerCase();
+            const codeLower = code.toLowerCase();
+            
+            // Direct pattern match
+            if (codeLower.includes(patternLower.split(':')[0]?.trim() || '')) {
+                return true;
+            }
+            
+            // Keyword overlap
+            return keywords.some(keyword => 
+                patternLower.includes(keyword.toLowerCase()) ||
+                pattern.examples.some(example => 
+                    example.toLowerCase().includes(keyword.toLowerCase())
+                )
+            );
+        }).slice(0, 3); // Top 3 most relevant patterns
+    }
+
+    private extractKeywords(text: string): string[] {
+        // Extract meaningful keywords from text
+        const words = text.toLowerCase()
+            .replace(/[^\w\s]/g, ' ')
+            .split(/\s+/)
+            .filter(word => word.length > 3)
+            .filter(word => !this.isStopWord(word));
+
+        // Remove duplicates and return top keywords
+        return Array.from(new Set(words)).slice(0, 10);
+    }
+
+    private isStopWord(word: string): boolean {
+        const stopWords = [
+            'this', 'that', 'with', 'have', 'will', 'from', 'they', 'been',
+            'their', 'said', 'each', 'which', 'would', 'there', 'could',
+            'other', 'after', 'first', 'well', 'also', 'where', 'much',
+            'some', 'time', 'very', 'when', 'come', 'here', 'just', 'like',
+            'long', 'make', 'many', 'over', 'such', 'take', 'than', 'them',
+            'want', 'ways'
+        ];
+        return stopWords.includes(word);
+    }
+
     updatePath(path: string): void {
         this.claudePath = path;
     }
 
-    private buildContextPrompt(context: ProjectContext): string {
+    async checkAvailability(): Promise<boolean> {
+        return this.isAvailable();
+    }
+
+    async getVersion(): Promise<string> {
+        try {
+            return await this.executeCommand('--version');
+        } catch {
+            return 'unknown';
+        }
+    }
+
+    getExecutionHistory(): any[] {
+        // For now, return empty array - could be enhanced later
+        return [];
+    }
+
+    private buildContextPrompt(
+        context: ProjectContext, 
+        memories?: ExecutionMemory[], 
+        patterns?: LearnedPattern[]
+    ): string {
         const sections: string[] = [];
 
         // Project information
@@ -126,6 +236,16 @@ export class ClaudeCodeInterface {
         
         if (context.frameworks.length > 0) {
             sections.push(`Frameworks: ${context.frameworks.join(', ')}`);
+        }
+
+        // 🔥 NEW: Memory section
+        if (memories && memories.length > 0) {
+            sections.push(this.buildMemorySection(memories));
+        }
+
+        // 🔥 NEW: Pattern section
+        if (patterns && patterns.length > 0) {
+            sections.push(this.buildPatternSection(patterns));
         }
 
         // Related files
@@ -165,6 +285,21 @@ export class ClaudeCodeInterface {
         sections.push('');
 
         return sections.join('\n');
+    }
+
+    private buildMemorySection(memories: ExecutionMemory[]): string {
+        return `\n## Relevant Past Experiences
+${memories.map(m => `- ${new Date(m.timestamp).toLocaleDateString()}: ${m.input.substring(0, 100)}${m.input.length > 100 ? '...' : ''}
+  Result: ${m.result.substring(0, 150)}${m.result.length > 150 ? '...' : ''}
+  ${m.tags ? `Tags: ${m.tags.join(', ')}` : ''}`).join('\n')}`;
+    }
+
+    private buildPatternSection(patterns: LearnedPattern[]): string {
+        return `\n## Learned Patterns
+${patterns.map(p => `- ${p.pattern} (${p.type}, used ${p.frequency} times)
+  Last seen: ${p.lastSeen.toLocaleDateString()}
+  ${p.metadata?.solution ? `Solution: ${p.metadata.solution}` : ''}
+  Examples: ${p.examples.slice(0, 2).join('; ')}${p.examples.length > 2 ? '; ...' : ''}`).join('\n')}`;
     }
 
     private formatDate(date: Date): string {

@@ -15,6 +15,7 @@ export interface ExtensionContext {
     workflowPanel: any; // Using the actual WorkflowPanel class
     contextViewer: any; // Using the actual ContextViewer class
     intelligentTriggers: IntelligentTriggers;
+    memoryAwareHook: any; // Using the actual MemoryAwareHook class
 }
 
 // Claude Code interfaces
@@ -344,6 +345,8 @@ export interface WorkflowContext {
     constraints: string[];
     preferences: WorkflowPreferences;
     projectContext: ProjectContext;
+    previousExperiences?: Workflow[];
+    learnedPatterns?: LearnedPattern[];
 }
 
 export interface WorkflowPreferences {
