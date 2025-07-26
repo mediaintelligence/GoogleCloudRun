@@ -24,7 +24,7 @@ export class ProgressMonitor {
     private focusSessions: FocusSession[] = [];
     private currentFocusSession: FocusSession | null = null;
     private statusBarItem: vscode.StatusBarItem;
-    private updateInterval: NodeJS.Timer | undefined;
+    private updateInterval: NodeJS.Timeout | undefined;
 
     constructor(
         private context: vscode.ExtensionContext,
