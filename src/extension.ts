@@ -10,6 +10,7 @@ import { ClaudeCodeInterface } from './core/claudeCodeInterface';
 
 // Intelligent systems imports
 import { IntelligentTriggers } from './hooks/intelligentTriggers';
+import { MemoryAwareHook } from './hooks/memoryAwareHook';
 
 // UI components imports
 import { WorkflowPanelProvider } from './ui/workflowPanel';
@@ -45,6 +46,7 @@ class ClaudeGeminiAssistant {
     
     // Intelligent systems
     private intelligentTriggers!: IntelligentTriggers;
+    private memoryAwareHook!: MemoryAwareHook;
     
     // UI providers
     private workflowPanelProvider!: WorkflowPanelProvider;
@@ -138,6 +140,13 @@ class ClaudeGeminiAssistant {
         this.intelligentTriggers = new IntelligentTriggers(
             this.extensionContext,
             this.workflowEngine,
+            this.memorySystem,
+            this.projectIntelligence
+        );
+
+        console.log('🧠 Initializing Memory-Aware Hook System...');
+        this.memoryAwareHook = new MemoryAwareHook(
+            this.extensionContext,
             this.memorySystem,
             this.projectIntelligence
         );
@@ -735,6 +744,10 @@ class ClaudeGeminiAssistant {
         // Dispose of systems that need cleanup
         if (this.projectIntelligence) {
             this.projectIntelligence.dispose();
+        }
+        
+        if (this.memoryAwareHook) {
+            this.memoryAwareHook.dispose();
         }
         
         // Clear active workflows
