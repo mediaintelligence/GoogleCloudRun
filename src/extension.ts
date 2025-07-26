@@ -4,6 +4,7 @@ import { ProjectIntelligence } from './core/projectIntelligence';
 import { MemorySystem } from './core/memorySystem';
 import { GeminiWorkflow } from './gemini/geminiWorkflow';
 import { IntelligentTriggers } from './hooks/intelligentTriggers';
+import { MemoryAwareHook } from './hooks/memoryAwareHook';
 import { WorkflowPanel } from './ui/workflowPanel';
 import { ContextViewer } from './ui/contextViewer';
 import { ExtensionContext } from './types/interfaces';
@@ -14,9 +15,9 @@ export function activate(context: vscode.ExtensionContext) {
     console.log('Claude Gemini Assistant is now active!');
 
     // Initialize core systems
-    const claudeInterface = new ClaudeCodeInterface(context);
     const projectIntelligence = new ProjectIntelligence(context);
     const memorySystem = new MemorySystem(context);
+    const claudeInterface = new ClaudeCodeInterface(context, memorySystem);
     const geminiWorkflow = new GeminiWorkflow(context, claudeInterface, projectIntelligence, memorySystem);
     
     // Initialize UI components
@@ -31,6 +32,13 @@ export function activate(context: vscode.ExtensionContext) {
         geminiWorkflow
     );
 
+    // Initialize memory-aware hook for automatic memory/pattern reference
+    const memoryAwareHook = new MemoryAwareHook(
+        context,
+        memorySystem,
+        projectIntelligence
+    );
+
     // Store extension context
     extensionContext = {
         claudeInterface,
@@ -39,7 +47,8 @@ export function activate(context: vscode.ExtensionContext) {
         geminiWorkflow,
         workflowPanel,
         contextViewer,
-        intelligentTriggers
+        intelligentTriggers,
+        memoryAwareHook
     };
 
     // Register commands
@@ -277,6 +286,9 @@ function updateConfiguration(extContext: ExtensionContext) {
     
     // Update intelligent suggestions
     extContext.intelligentTriggers.setEnabled(config.get('intelligentSuggestions') || true);
+    
+    // Update memory awareness
+    extContext.memoryAwareHook.setEnabled(config.get('memoryAwareness') || true);
 }
 
 function getMemoryDetailHtml(memory: any): string {
@@ -355,6 +367,7 @@ export function deactivate() {
     // Cleanup
     if (extensionContext) {
         extensionContext.intelligentTriggers.dispose();
+        extensionContext.memoryAwareHook.dispose();
         extensionContext.workflowPanel.dispose();
         extensionContext.memorySystem.dispose();
     }

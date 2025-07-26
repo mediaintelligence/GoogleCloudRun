@@ -78,12 +78,19 @@ export class GeminiWorkflow {
         // Get project context
         const projectContext = await this.getProjectContext();
 
-        // Create workflow context
+        // 🔥 NEW: Find similar past workflows and relevant patterns
+        const similarWorkflows = await this.findSimilarWorkflows(goal);
+        const relevantPatterns = await this.memorySystem.getLearnedPatterns()
+            .then(patterns => patterns.filter(p => p.type === 'workflow'));
+
+        // Create workflow context with memory
         const workflowContext: WorkflowContext = {
             goal: goal,
             constraints: await this.getConstraints(),
             preferences: await this.getPreferences(),
-            projectContext: projectContext
+            projectContext: projectContext,
+            previousExperiences: similarWorkflows,
+            learnedPatterns: relevantPatterns
         };
 
         // Create new workflow
@@ -486,6 +493,43 @@ export class GeminiWorkflow {
         );
         
         return choice === 'Proceed';
+    }
+
+    private async findSimilarWorkflows(goal: string): Promise<Workflow[]> {
+        // Extract keywords from the goal
+        const goalKeywords = this.extractKeywords(goal);
+        
+        return this.workflowHistory.filter(workflow => {
+            // Check goal similarity
+            const workflowKeywords = this.extractKeywords(workflow.description);
+            const commonKeywords = goalKeywords.filter(keyword =>
+                workflowKeywords.some(wk => wk.toLowerCase().includes(keyword.toLowerCase()))
+            );
+            
+            // Return workflows with at least 2 common keywords or name similarity
+            return commonKeywords.length >= 2 || 
+                   workflow.name.toLowerCase().includes(goal.toLowerCase().substring(0, 20));
+        }).sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+          .slice(0, 3); // Most recent 3 similar workflows
+    }
+
+    private extractKeywords(text: string): string[] {
+        return text.toLowerCase()
+            .replace(/[^\w\s]/g, ' ')
+            .split(/\s+/)
+            .filter(word => word.length > 3)
+            .filter(word => !this.isStopWord(word))
+            .slice(0, 10);
+    }
+
+    private isStopWord(word: string): boolean {
+        const stopWords = [
+            'this', 'that', 'with', 'have', 'will', 'from', 'they', 'been',
+            'their', 'said', 'each', 'which', 'would', 'there', 'could',
+            'other', 'after', 'first', 'well', 'also', 'where', 'much',
+            'some', 'time', 'very', 'when', 'come', 'here', 'just', 'like'
+        ];
+        return stopWords.includes(word);
     }
 
     private async showWorkflowSummary(): Promise<void> {
