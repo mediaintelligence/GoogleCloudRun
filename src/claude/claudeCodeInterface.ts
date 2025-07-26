@@ -10,7 +10,7 @@ export class ClaudeCodeInterface {
 
     constructor(private context: vscode.ExtensionContext) {
         const config = vscode.workspace.getConfiguration('claude-assistant');
-        this.claudePath = config.get('claudeCodePath') || 'claude-code';
+        this.claudePath = config.get('claudeCodePath') || 'claude';
         this.outputChannel = vscode.window.createOutputChannel('Claude Code');
     }
 

@@ -1,16 +1,33 @@
 
 {
-  "name": "claude-gemini-assistant",
-  "displayName": "Claude Code Assistant with Gemini Methodology",
-  "description": "Intelligent development assistant combining Claude Code execution with systematic project analysis and learning",
+  "name": "gemini-assistant",
+  "displayName": "Gemini Assistant for VS Code",
+  "description": "AI-powered development assistant using Google's Gemini for intelligent code analysis, systematic workflows, and adaptive learning",
   "version": "1.0.0",
   "license": "MIT",
   "publisher": "your-publisher-name",
-  "engines": {
-    "vscode": "^1.70.0"
+  "author": {
+    "name": "Your Name",
+    "email": "your.email@example.com"
   },
-  "categories": ["AI", "Other", "Snippets", "Debuggers"],
-  "keywords": ["claude", "ai", "assistant", "development", "automation"],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["AI", "Programming Languages", "Other"],
+  "keywords": ["gemini", "ai", "assistant", "code analysis", "workflow automation"],
+  "icon": "resources/icons/gemini-icon.png",
+  "galleryBanner": {
+    "color": "#1a73e8",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mediaintelligence/GoogleCloudRun.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mediaintelligence/GoogleCloudRun/issues"
+  },
+  "homepage": "https://github.com/mediaintelligence/GoogleCloudRun#readme",
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -148,9 +165,9 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "claude-assistant",
-          "title": "Claude Assistant",
-          "icon": "$(robot)"
+          "id": "gemini-assistant",
+          "title": "Gemini Assistant",
+          "icon": "resources/icons/gemini-sidebar.svg"
         }
       ]
     },
@@ -175,23 +192,36 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "clean": "rimraf dist",
+    "deploy": "vsce publish"
   },
   "devDependencies": {
-    "@types/vscode": "^1.70.0",
-    "@types/node": "16.x",
-    "@typescript-eslint/eslint-plugin": "^5.31.0",
-    "@typescript-eslint/parser": "^5.31.0",
-    "eslint": "^8.20.0",
-    "typescript": "^4.7.4"
+    "@types/vscode": "^1.85.0",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^2.22.0",
+    "eslint": "^8.56.0",
+    "glob": "^10.3.10",
+    "jest": "^29.7.0",
+    "rimraf": "^5.0.5",
+    "ts-jest": "^29.1.1",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "chokidar": "^3.5.3",
-    "ignore": "^5.2.0"
+    "@google/generative-ai": "^0.1.0",
+    "axios": "^1.6.0",
+    "uuid": "^9.0.1"
   }
 }

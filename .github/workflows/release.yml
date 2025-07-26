@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run tests
+      run: npm test
+    
+    - name: Build and package
+      run: |
+        npm run compile
+        npm install -g @vscode/vsce
+        vsce package
+    
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Gemini Assistant ${{ github.ref }}
+        body: |
+          ## What's New
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+          
+          ## Installation
+          1. Download the .vsix file below
+          2. In VS Code, go to Extensions view
+          3. Click ... → Install from VSIX
+          4. Select the downloaded file
+          
+          ## Configuration
+          Don't forget to set your Gemini API key in settings!
+        draft: false
+        prerelease: false
+    
+    - name: Get VSIX filename
+      id: get_vsix
+      run: echo "vsix_file=$(ls *.vsix)" >> $GITHUB_OUTPUT
+    
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./${{ steps.get_vsix.outputs.vsix_file }}
+        asset_name: ${{ steps.get_vsix.outputs.vsix_file }}
+        asset_content_type: application/vsix
+    
+    - name: Publish to Marketplace
+      if: success()
+      env:
+        VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      run: |
+        vsce publish -p $VSCE_PAT
