@@ -15,13 +15,23 @@ export class IntelligentTriggers {
     private disposables: vscode.Disposable[] = [];
     private recentEdits: vscode.TextDocumentChangeEvent[] = [];
     private editDebounceTimer: NodeJS.Timeout | null = null;
+    private claudeInterface: ClaudeCodeInterface;
+    private geminiWorkflow: GeminiWorkflow;
 
     constructor(
         private context: vscode.ExtensionContext,
-        private projectIntelligence: ProjectIntelligence,
-        private claudeInterface: ClaudeCodeInterface,
-        private geminiWorkflow: GeminiWorkflow
+        private workflowEngine: any,
+        private memorySystem: any,
+        private projectIntelligence: any
     ) {
+        // Create instances needed for the existing code
+        this.claudeInterface = new ClaudeCodeInterface(context);
+        this.geminiWorkflow = new GeminiWorkflow(
+            context,
+            null as any,  // Placeholder for missing dependencies
+            null as any,
+            null as any
+        );
         this.initializeDefaultTriggers();
         this.setupEventListeners();
     }
@@ -220,6 +230,115 @@ export class IntelligentTriggers {
             clearTimeout(this.editDebounceTimer);
             this.editDebounceTimer = null;
         }
+    }
+    
+    handleDiagnosticChanges(event: vscode.DiagnosticChangeEvent): void {
+        if (!this.enabled) return;
+        
+        // Process diagnostic changes for each affected URI
+        for (const uri of event.uris) {
+            const diagnostics = vscode.languages.getDiagnostics(uri);
+            if (diagnostics.length > 0) {
+                // Check if any triggers should fire based on diagnostics
+                this.checkDiagnosticTriggers(uri, diagnostics);
+            }
+        }
+    }
+    
+    handleFileChange(uri: vscode.Uri, changeType: 'created' | 'modified' | 'deleted'): void {
+        if (!this.enabled) return;
+        
+        // Handle file changes based on type
+        switch (changeType) {
+            case 'created':
+                // Check if new file needs boilerplate or setup
+                this.checkNewFileTriggers(uri);
+                break;
+            case 'modified':
+                // Check if modifications trigger any patterns
+                this.checkModificationTriggers(uri);
+                break;
+            case 'deleted':
+                // Check if deletion requires cleanup
+                this.checkDeletionTriggers(uri);
+                break;
+        }
+    }
+    
+    async analyzeTriggerConditions(): Promise<void> {
+        if (!this.enabled) return;
+        
+        // Analyze current workspace state for proactive triggers
+        const activeEditor = vscode.window.activeTextEditor;
+        if (!activeEditor) return;
+        
+        const document = activeEditor.document;
+        const position = activeEditor.selection.active;
+        const diagnostics = vscode.languages.getDiagnostics(document.uri);
+        
+        // Build trigger context
+        const context: TriggerContext = {
+            document,
+            position,
+            recentEdits: this.recentEdits,
+            diagnostics,
+            projectContext: await this.getProjectContext()
+        };
+        
+        // Check each registered trigger
+        for (const trigger of this.triggers.values()) {
+            if (trigger.enabled && await trigger.condition.evaluate(context)) {
+                await trigger.action.execute(context);
+            }
+        }
+    }
+    
+    private checkDiagnosticTriggers(uri: vscode.Uri, diagnostics: vscode.Diagnostic[]): void {
+        // Implementation for checking diagnostic-based triggers
+        const errors = diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error);
+        if (errors.length > 3) {
+            // Multiple errors detected, might need assistance
+            const trigger = this.triggers.get('error-assistance');
+            if (trigger && trigger.enabled) {
+                // Execute error assistance trigger
+                vscode.commands.executeCommand('claude-assistant.executeWithContext');
+            }
+        }
+    }
+    
+    private checkNewFileTriggers(uri: vscode.Uri): void {
+        // Implementation for new file triggers
+        const fileName = vscode.workspace.asRelativePath(uri);
+        if (fileName.endsWith('.test.ts') || fileName.endsWith('.spec.ts')) {
+            // New test file created
+            vscode.window.showInformationMessage(
+                'Would you like help setting up this test file?',
+                'Yes',
+                'No'
+            ).then(choice => {
+                if (choice === 'Yes') {
+                    vscode.commands.executeCommand('claude-assistant.executeWithContext');
+                }
+            });
+        }
+    }
+    
+    private checkModificationTriggers(uri: vscode.Uri): void {
+        // Implementation for file modification triggers
+        // Could analyze the nature of changes and suggest improvements
+    }
+    
+    private checkDeletionTriggers(uri: vscode.Uri): void {
+        // Implementation for file deletion triggers
+        // Could check for orphaned imports or references
+    }
+    
+    private async getProjectContext(): Promise<any> {
+        // Get project context from project intelligence
+        const context = await this.projectIntelligence.getContextForFile(
+            vscode.window.activeTextEditor?.document.uri || vscode.Uri.file('')
+        );
+        return context;
     }
 }
 

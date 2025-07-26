@@ -1,5 +1,11 @@
 import * as vscode from 'vscode';
 
+// Type definitions
+export type WorkflowPriority = 'high' | 'medium' | 'low';
+export type WorkflowStatus = 'planning' | 'executing' | 'paused' | 'completed' | 'failed' | 'cancelled';
+export type WorkflowComplexity = 'simple' | 'moderate' | 'complex';
+export type PhaseType = 'analysis' | 'planning' | 'implementation' | 'testing' | 'review' | 'deployment';
+
 // Core system interfaces
 export interface ExtensionContext {
     claudeInterface: ClaudeCodeInterface;
@@ -14,9 +20,12 @@ export interface ExtensionContext {
 // Claude Code interfaces
 export interface ClaudeCodeInterface {
     executeCommand(command: string, args?: string[]): Promise<string>;
-    executeWithContext(code: string, context: ProjectContext): Promise<string>;
+    executeWithContext(code: string, context: ExecutionContext, workingDirectory: string): Promise<ClaudeCodeExecution>;
     isAvailable(): Promise<boolean>;
     updatePath(path: string): void;
+    checkAvailability(): Promise<boolean>;
+    getVersion(): Promise<string>;
+    getExecutionHistory(): ClaudeCodeExecution[];
 }
 
 export interface ClaudeExecutionResult {
@@ -26,13 +35,81 @@ export interface ClaudeExecutionResult {
     duration: number;
 }
 
+export interface ClaudeCodeExecution {
+    id: string;
+    instruction: string;
+    context: any;
+    workingDirectory: string;
+    startTime: Date;
+    endTime: Date;
+    duration: number;
+    success: boolean;
+    output: string;
+    filesModified: string[];
+    testsRun: number;
+    testsPassed: number;
+    errorCount: number;
+    warningCount: number;
+}
+
+export interface ExecutionContext {
+    projectIntelligence: ProjectIntelligence;
+    currentWorkflow: GeminiWorkflow;
+    currentPhase: WorkflowPhase;
+    relevantMemories: ExecutionMemory[];
+    similarExecutions: ClaudeCodeExecution[];
+    learnedPatterns: LearnedPattern[];
+    activeFiles: string[];
+    recentChanges: FileChange[];
+    currentErrors: ErrorContext[];
+    suggestedApproaches: string[];
+    cautionAreas: string[];
+    successCriteria: string[];
+}
+
+export interface PhaseAction {
+    type: string;
+    name: string;
+    description: string;
+    command?: string;
+    parameters?: any;
+}
+
 // Project Intelligence interfaces
+export interface ProjectIntelligenceSystem {
+    getProjectIntelligence(forceRefresh?: boolean): Promise<ProjectIntelligence | null>;
+    dispose(): void;
+}
+
 export interface ProjectIntelligence {
-    analyzeWorkspace(): Promise<void>;
-    analyzeFolder(uri: vscode.Uri, progress?: vscode.Progress<any>, token?: vscode.CancellationToken): Promise<void>;
-    getContextForFile(uri: vscode.Uri): Promise<ProjectContext>;
-    getProjectStructure(): ProjectStructure;
-    findPatterns(): CodePattern[];
+    projectId: string;
+    rootPath: string;
+    name: string;
+    description: string;
+    projectType: string;
+    fileCount: number;
+    architecture: {
+        primaryPattern: string;
+        layers: string[];
+        keyComponents: string[];
+    };
+    technologies: {
+        primaryLanguage: string;
+        frameworks: string[];
+        libraries: string[];
+        tools: string[];
+    };
+    codeQuality: {
+        codeComplexity: number;
+        testCoverage: number;
+        technicalDebt: number;
+    };
+    teamContext: {
+        conventions: string[];
+        workflowPreferences: string[];
+    };
+    dependencies: any[];
+    recentActivity: any[];
 }
 
 export interface ProjectContext {
@@ -151,12 +228,14 @@ export interface WorkflowPhase {
     id: string;
     name: string;
     description: string;
-    type: string;
+    type: PhaseType;
     status: PhaseStatus;
     startedAt?: Date;
     completedAt?: Date;
     estimatedDuration: number;
     actualDuration?: number;
+    reviewCriteria: string[];
+    actions: PhaseAction[];
 }
 
 export type PhaseStatus = 'pending' | 'in-progress' | 'completed' | 'requires-review' | 'blocked';
@@ -165,10 +244,13 @@ export type PhaseStatus = 'pending' | 'in-progress' | 'completed' | 'requires-re
 export interface MemorySystem {
     recordExecution(execution: ExecutionMemory): Promise<void>;
     recordPattern(pattern: LearnedPattern): Promise<void>;
+    recordExperience(execution: ClaudeCodeExecution, workflow: GeminiWorkflow, projectIntel: ProjectIntelligence): Promise<void>;
     getRecentMemories(count?: number): Promise<ExecutionMemory[]>;
     getLastExecution(): Promise<ExecutionMemory | null>;
     searchMemories(query: string): Promise<ExecutionMemory[]>;
     getLearnedPatterns(): Promise<LearnedPattern[]>;
+    getRelevantMemories(context: string, projectIntel: ProjectIntelligence, count: number): Promise<ExecutionMemory[]>;
+    getApplicablePatterns(context: string, projectIntel: ProjectIntelligence, count: number): Promise<LearnedPattern[]>;
     setRetentionDays(days: number): void;
     getTreeDataProvider(): vscode.TreeDataProvider<MemoryItem>;
     dispose(): void;
@@ -204,14 +286,24 @@ export interface MemoryItem {
 
 // Gemini Workflow interfaces
 export interface GeminiWorkflow {
-    startWorkflow(): Promise<void>;
-    executeStep(step: WorkflowStep): Promise<StepResult>;
-    getCurrentWorkflow(): Workflow | null;
-    getWorkflowHistory(): Workflow[];
-    pauseWorkflow(): void;
-    resumeWorkflow(): void;
-    cancelWorkflow(): void;
-    setComplexity(level: 'simple' | 'standard' | 'comprehensive'): void;
+    id: string;
+    projectId: string;
+    title: string;
+    description: string;
+    createdAt: Date;
+    lastUpdated: Date;
+    status: WorkflowStatus;
+    priority: WorkflowPriority;
+    complexity: WorkflowComplexity;
+    phases: WorkflowPhase[];
+    currentPhaseIndex: number;
+    initialContext: ProjectIntelligence;
+    contextUpdates: any[];
+    learningOutcomes: any[];
+    claudeCodeExecutions: ClaudeCodeExecution[];
+    totalExecutionTime: number;
+    successCriteria: string[];
+    completionPercentage: number;
 }
 
 export interface Workflow {
@@ -268,6 +360,15 @@ export interface WorkflowArtifact {
 }
 
 // Intelligent Triggers interfaces
+export interface IntelligentTriggersSystem {
+    handleDiagnosticChanges(event: vscode.DiagnosticChangeEvent): void;
+    handleFileChange(uri: vscode.Uri, changeType: 'created' | 'modified' | 'deleted'): void;
+    analyzeTriggerConditions(): Promise<void>;
+    setEnabled(enabled: boolean): void;
+    registerTrigger(trigger: Trigger): void;
+    dispose(): void;
+}
+
 export interface IntelligentTriggers {
     setEnabled(enabled: boolean): void;
     registerTrigger(trigger: Trigger): void;

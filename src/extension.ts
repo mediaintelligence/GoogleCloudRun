@@ -3,17 +3,18 @@
 import * as vscode from 'vscode';
 
 // Core system imports
-import { ProjectIntelligenceSystem } from './core/projectIntelligence';
+import { ProjectIntelligenceSystem } from './core/projectIntelligenceSystem';
 import { MemorySystem } from './core/memorySystem';
 import { GeminiWorkflowEngine } from './core/geminiWorkflow';
 import { ClaudeCodeInterface } from './core/claudeCodeInterface';
 
 // Intelligent systems imports
-import { IntelligentTriggersSystem } from './hooks/intelligentTriggers';
+import { IntelligentTriggers } from './hooks/intelligentTriggers';
 
 // UI components imports
 import { WorkflowPanelProvider } from './ui/workflowPanel';
-import { ProjectContextProvider } from './ui/contextViewer';
+import { ContextViewer } from './ui/contextViewer';
+import { ProjectContextProvider } from './ui/contextTreeProvider';
 
 // Type imports
 import { 
@@ -37,17 +38,18 @@ import {
  */
 class ClaudeGeminiAssistant {
     // Core systems
-    private projectIntelligence: ProjectIntelligenceSystem;
-    private memorySystem: MemorySystem;
-    private workflowEngine: GeminiWorkflowEngine;
-    private claudeCodeInterface: ClaudeCodeInterface;
+    private projectIntelligence!: ProjectIntelligenceSystem;
+    private memorySystem!: MemorySystem;
+    private workflowEngine!: GeminiWorkflowEngine;
+    private claudeCodeInterface!: ClaudeCodeInterface;
     
     // Intelligent systems
-    private intelligentTriggers: IntelligentTriggersSystem;
+    private intelligentTriggers!: IntelligentTriggers;
     
     // UI providers
-    private workflowPanelProvider: WorkflowPanelProvider;
-    private contextProvider: ProjectContextProvider;
+    private workflowPanelProvider!: WorkflowPanelProvider;
+    private contextViewer!: ContextViewer;
+    private contextProvider!: ProjectContextProvider;
     
     // Extension state
     private extensionContext: vscode.ExtensionContext;
@@ -133,7 +135,7 @@ class ClaudeGeminiAssistant {
      */
     private async initializeIntelligentSystems(): Promise<void> {
         console.log('🧩 Initializing Intelligent Triggers System...');
-        this.intelligentTriggers = new IntelligentTriggersSystem(
+        this.intelligentTriggers = new IntelligentTriggers(
             this.extensionContext,
             this.workflowEngine,
             this.memorySystem,
@@ -151,6 +153,12 @@ class ClaudeGeminiAssistant {
             this.extensionContext,
             this.workflowEngine,
             this.projectIntelligence
+        );
+        
+        this.contextViewer = new ContextViewer(
+            this.extensionContext,
+            this.projectIntelligence,
+            this.memorySystem
         );
         
         this.contextProvider = new ProjectContextProvider(

@@ -2,7 +2,7 @@
 
 import * as vscode from 'vscode';
 import { GeminiWorkflowEngine } from '../core/geminiWorkflow';
-import { ProjectIntelligenceSystem } from '../core/projectIntelligence';
+import { ProjectIntelligenceSystem } from '../core/projectIntelligenceSystem';
 import { 
     GeminiWorkflow, 
     WorkflowPhase, 
@@ -33,7 +33,7 @@ export class WorkflowPanelProvider implements vscode.WebviewViewProvider {
     
     // State tracking
     private activeWorkflow?: GeminiWorkflow;
-    private refreshTimer?: NodeJS.Timer;
+    private refreshTimer?: ReturnType<typeof setInterval>;
     
     constructor(
         extensionContext: vscode.ExtensionContext,
@@ -1018,13 +1018,12 @@ export class WorkflowPanelProvider implements vscode.WebviewViewProvider {
     }
     
     private getStatusColor(status: WorkflowStatus): string {
-        const colors = {
+        const colors: Record<WorkflowStatus, string> = {
             'planning': '#6c6c6c',
-            'analyzing': '#007acc',
             'executing': '#007acc',
-            'reviewing': '#f9b232',
-            'completed': '#388a34',
             'paused': '#f9b232',
+            'completed': '#388a34',
+            'failed': '#e74c3c',
             'cancelled': '#e74c3c'
         };
         return colors[status] || '#6c6c6c';

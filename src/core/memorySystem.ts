@@ -4,7 +4,10 @@ import {
     ExecutionMemory, 
     LearnedPattern, 
     MemoryItem,
-    ProjectContext 
+    ProjectContext,
+    ClaudeCodeExecution,
+    GeminiWorkflow,
+    ProjectIntelligence
 } from '../types/interfaces';
 
 export class MemorySystem implements vscode.TreeDataProvider<MemoryItem> {
@@ -398,5 +401,85 @@ export class MemorySystem implements vscode.TreeDataProvider<MemoryItem> {
         } catch (error) {
             console.error('Failed to save memories:', error);
         }
+    }
+    
+    async recordExperience(
+        execution: ClaudeCodeExecution, 
+        workflow: GeminiWorkflow, 
+        projectIntel: ProjectIntelligence
+    ): Promise<void> {
+        // Convert ClaudeCodeExecution to ExecutionMemory
+        const memory: ExecutionMemory = {
+            id: execution.id,
+            input: execution.instruction,
+            context: {
+                projectRoot: projectIntel.rootPath,
+                currentFile: execution.workingDirectory,
+                relatedFiles: [],
+                dependencies: [],
+                recentChanges: [],
+                projectType: projectIntel.projectType,
+                frameworks: projectIntel.technologies.frameworks,
+                patterns: []
+            },
+            result: execution.output,
+            timestamp: execution.startTime,
+            tags: [workflow.title, workflow.priority],
+            rating: execution.success ? 5 : 1
+        };
+        
+        await this.recordExecution(memory);
+    }
+    
+    async getRelevantMemories(
+        context: string, 
+        projectIntel: ProjectIntelligence, 
+        count: number
+    ): Promise<ExecutionMemory[]> {
+        // Simple relevance filtering based on context similarity
+        const relevantMemories = this.memories.filter(memory => {
+            // Check if memory is from the same project
+            if (memory.context.projectRoot !== projectIntel.rootPath) {
+                return false;
+            }
+            
+            // Check if input contains similar keywords
+            const contextWords = context.toLowerCase().split(/\s+/);
+            const memoryWords = memory.input.toLowerCase().split(/\s+/);
+            
+            const commonWords = contextWords.filter(word => 
+                memoryWords.includes(word) && word.length > 3
+            );
+            
+            return commonWords.length > 0;
+        });
+        
+        // Sort by timestamp (most recent first) and return requested count
+        return relevantMemories
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, count);
+    }
+    
+    async getApplicablePatterns(
+        context: string, 
+        projectIntel: ProjectIntelligence, 
+        count: number
+    ): Promise<LearnedPattern[]> {
+        // Filter patterns that might be applicable to the current context
+        const applicablePatterns = this.patterns.filter(pattern => {
+            // Check if pattern is relevant to the context
+            const contextLower = context.toLowerCase();
+            const patternLower = pattern.pattern.toLowerCase();
+            
+            return contextLower.includes(patternLower) || 
+                   pattern.examples.some(example => 
+                       contextLower.includes(example.toLowerCase())
+                   );
+        });
+        
+        // Sort by frequency (most frequent first) and return requested count
+        return applicablePatterns
+            .sort((a, b) => b.frequency - a.frequency)
+            .slice(0, count);
     }
 }
