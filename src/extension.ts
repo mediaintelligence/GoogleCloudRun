@@ -1,361 +1,766 @@
+// src/extension.ts
+
 import * as vscode from 'vscode';
-import { ClaudeCodeInterface } from './claude/claudeCodeInterface';
-import { ProjectIntelligence } from './core/projectIntelligence';
+
+// Core system imports
+import { ProjectIntelligenceSystem } from './core/projectIntelligence';
 import { MemorySystem } from './core/memorySystem';
-import { GeminiWorkflow } from './gemini/geminiWorkflow';
-import { IntelligentTriggers } from './hooks/intelligentTriggers';
-import { WorkflowPanel } from './ui/workflowPanel';
-import { ContextViewer } from './ui/contextViewer';
-import { ExtensionContext } from './types/interfaces';
+import { GeminiWorkflowEngine } from './core/geminiWorkflow';
+import { ClaudeCodeInterface } from './core/claudeCodeInterface';
 
-let extensionContext: ExtensionContext;
+// Intelligent systems imports
+import { IntelligentTriggersSystem } from './hooks/intelligentTriggers';
 
-export function activate(context: vscode.ExtensionContext) {
-    console.log('Claude Gemini Assistant is now active!');
+// UI components imports
+import { WorkflowPanelProvider } from './ui/workflowPanel';
+import { ProjectContextProvider } from './ui/contextViewer';
 
-    // Initialize core systems
-    const claudeInterface = new ClaudeCodeInterface(context);
-    const projectIntelligence = new ProjectIntelligence(context);
-    const memorySystem = new MemorySystem(context);
-    const geminiWorkflow = new GeminiWorkflow(context, claudeInterface, projectIntelligence, memorySystem);
+// Type imports
+import { 
+    GeminiWorkflow, 
+    ProjectIntelligence, 
+    WorkflowPriority,
+    ExecutionContext 
+} from './types/interfaces';
+
+/**
+ * The main extension entry point that orchestrates our sophisticated
+ * development assistant. This class serves as the conductor that coordinates
+ * all our intelligent systems - Project Intelligence, Memory, Workflow Engine,
+ * and Intelligent Triggers - into a cohesive development environment.
+ * 
+ * Think of this as the command center that ensures all components work
+ * together seamlessly to provide contextually appropriate assistance at
+ * exactly the right moments. When you interact with any part of our system,
+ * this coordination layer ensures that all relevant intelligence contributes
+ * to providing the most effective assistance possible.
+ */
+class ClaudeGeminiAssistant {
+    // Core systems
+    private projectIntelligence: ProjectIntelligenceSystem;
+    private memorySystem: MemorySystem;
+    private workflowEngine: GeminiWorkflowEngine;
+    private claudeCodeInterface: ClaudeCodeInterface;
     
-    // Initialize UI components
-    const workflowPanel = new WorkflowPanel(context, geminiWorkflow);
-    const contextViewer = new ContextViewer(context, projectIntelligence);
+    // Intelligent systems
+    private intelligentTriggers: IntelligentTriggersSystem;
     
-    // Initialize intelligent triggers
-    const intelligentTriggers = new IntelligentTriggers(
-        context,
-        projectIntelligence,
-        claudeInterface,
-        geminiWorkflow
-    );
-
-    // Store extension context
-    extensionContext = {
-        claudeInterface,
-        projectIntelligence,
-        memorySystem,
-        geminiWorkflow,
-        workflowPanel,
-        contextViewer,
-        intelligentTriggers
-    };
-
-    // Register commands
-    registerCommands(context, extensionContext);
-
-    // Register views
-    registerViews(context, extensionContext);
-
-    // Initialize workspace tracking
-    if (vscode.workspace.workspaceFolders) {
-        const autoAnalyze = vscode.workspace.getConfiguration('claude-assistant').get('autoAnalyzeProjects');
-        if (autoAnalyze) {
-            projectIntelligence.analyzeWorkspace();
+    // UI providers
+    private workflowPanelProvider: WorkflowPanelProvider;
+    private contextProvider: ProjectContextProvider;
+    
+    // Extension state
+    private extensionContext: vscode.ExtensionContext;
+    private outputChannel: vscode.OutputChannel;
+    private statusBarItem: vscode.StatusBarItem;
+    
+    // Active state tracking
+    private activeWorkflows: Map<string, GeminiWorkflow> = new Map();
+    private isInitialized: boolean = false;
+    
+    constructor(context: vscode.ExtensionContext) {
+        this.extensionContext = context;
+        this.outputChannel = vscode.window.createOutputChannel('Claude Gemini Assistant');
+        this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+        
+        console.log('🚀 Claude Gemini Assistant starting initialization...');
+    }
+    
+    /**
+     * Initializes all core systems in the correct order, ensuring each
+     * system has access to the dependencies it needs to function effectively.
+     */
+    async initialize(): Promise<void> {
+        if (this.isInitialized) {
+            console.log('⚠️ Assistant already initialized');
+            return;
+        }
+        
+        try {
+            console.log('🔧 Initializing core systems...');
+            
+            // Phase 1: Initialize foundational systems
+            await this.initializeFoundationSystems();
+            
+            // Phase 2: Initialize intelligent systems that depend on foundations
+            await this.initializeIntelligentSystems();
+            
+            // Phase 3: Initialize UI components
+            await this.initializeUIComponents();
+            
+            // Phase 4: Set up VS Code integrations
+            await this.setupVSCodeIntegrations();
+            
+            // Phase 5: Start monitoring and intelligent assistance
+            await this.startIntelligentMonitoring();
+            
+            this.isInitialized = true;
+            console.log('✅ Claude Gemini Assistant fully initialized and ready');
+            
+            // Show initialization complete message
+            this.showInitializationComplete();
+            
+        } catch (error) {
+            console.error('❌ Failed to initialize Claude Gemini Assistant:', error);
+            vscode.window.showErrorMessage(`Failed to initialize assistant: ${error}`);
+            throw error;
         }
     }
-
-    // Set up workspace change listener
-    context.subscriptions.push(
-        vscode.workspace.onDidChangeWorkspaceFolders(async (e) => {
-            if (e.added.length > 0) {
-                const autoAnalyze = vscode.workspace.getConfiguration('claude-assistant').get('autoAnalyzeProjects');
-                if (autoAnalyze) {
-                    for (const folder of e.added) {
-                        await projectIntelligence.analyzeFolder(folder.uri);
-                    }
-                }
+    
+    /**
+     * Initializes the foundational systems that other systems depend upon.
+     */
+    private async initializeFoundationSystems(): Promise<void> {
+        console.log('📊 Initializing Project Intelligence System...');
+        this.projectIntelligence = new ProjectIntelligenceSystem(this.extensionContext);
+        
+        console.log('🧠 Initializing Memory System...');
+        this.memorySystem = new MemorySystem(this.extensionContext);
+        
+        console.log('🔌 Initializing Claude Code Interface...');
+        this.claudeCodeInterface = new ClaudeCodeInterface(this.extensionContext);
+        
+        console.log('🏗️ Initializing Gemini Workflow Engine...');
+        this.workflowEngine = new GeminiWorkflowEngine(
+            this.extensionContext,
+            this.claudeCodeInterface,
+            this.memorySystem
+        );
+    }
+    
+    /**
+     * Initializes intelligent systems that provide proactive assistance.
+     */
+    private async initializeIntelligentSystems(): Promise<void> {
+        console.log('🧩 Initializing Intelligent Triggers System...');
+        this.intelligentTriggers = new IntelligentTriggersSystem(
+            this.extensionContext,
+            this.workflowEngine,
+            this.memorySystem,
+            this.projectIntelligence
+        );
+    }
+    
+    /**
+     * Initializes UI components that provide visual interfaces for our systems.
+     */
+    private async initializeUIComponents(): Promise<void> {
+        console.log('🖼️ Initializing UI Components...');
+        
+        this.workflowPanelProvider = new WorkflowPanelProvider(
+            this.extensionContext,
+            this.workflowEngine,
+            this.projectIntelligence
+        );
+        
+        this.contextProvider = new ProjectContextProvider(
+            this.extensionContext,
+            this.projectIntelligence,
+            this.memorySystem
+        );
+        
+        // Register webview providers
+        this.extensionContext.subscriptions.push(
+            vscode.window.registerWebviewViewProvider(
+                'claude-assistant.workflow',
+                this.workflowPanelProvider
+            )
+        );
+        
+        this.extensionContext.subscriptions.push(
+            vscode.window.registerTreeDataProvider(
+                'claude-assistant.context',
+                this.contextProvider
+            )
+        );
+    }
+    
+    /**
+     * Sets up all VS Code integrations including commands, event listeners,
+     * and status bar items.
+     */
+    private async setupVSCodeIntegrations(): Promise<void> {
+        console.log('⚙️ Setting up VS Code integrations...');
+        
+        // Register all commands
+        this.registerCommands();
+        
+        // Set up event listeners
+        this.setupEventListeners();
+        
+        // Initialize status bar
+        this.setupStatusBar();
+        
+        // Set up file system monitoring
+        this.setupFileSystemMonitoring();
+    }
+    
+    /**
+     * Registers all commands that users can invoke through VS Code.
+     */
+    private registerCommands(): void {
+        const commands = [
+            // Primary workflow commands
+            {
+                id: 'claude-assistant.startGeminiWorkflow',
+                handler: () => this.handleStartGeminiWorkflow()
+            },
+            {
+                id: 'claude-assistant.executeWithContext',
+                handler: () => this.handleExecuteWithContext()
+            },
+            {
+                id: 'claude-assistant.analyzeProject',
+                handler: () => this.handleAnalyzeProject()
+            },
+            
+            // Information and configuration commands
+            {
+                id: 'claude-assistant.showProjectMemory',
+                handler: () => this.handleShowProjectMemory()
+            },
+            {
+                id: 'claude-assistant.configureWorkflow',
+                handler: () => this.handleConfigureWorkflow()
+            },
+            {
+                id: 'claude-assistant.reviewLastExecution',
+                handler: () => this.handleReviewLastExecution()
             }
-        })
-    );
-
-    // Set up configuration change listener
-    context.subscriptions.push(
-        vscode.workspace.onDidChangeConfiguration((e) => {
-            if (e.affectsConfiguration('claude-assistant')) {
-                updateConfiguration(extensionContext);
+        ];
+        
+        // Register each command with VS Code
+        for (const command of commands) {
+            const disposable = vscode.commands.registerCommand(command.id, command.handler);
+            this.extensionContext.subscriptions.push(disposable);
+        }
+        
+        console.log(`📝 Registered ${commands.length} commands`);
+    }
+    
+    /**
+     * Sets up event listeners for VS Code events that our systems need to monitor.
+     */
+    private setupEventListeners(): void {
+        // Listen for diagnostic changes (errors, warnings)
+        const diagnosticListener = vscode.languages.onDidChangeDiagnostics((event) => {
+            this.intelligentTriggers.handleDiagnosticChanges(event);
+        });
+        
+        // Listen for file changes
+        const fileChangeListener = vscode.workspace.onDidChangeTextDocument((event) => {
+            this.intelligentTriggers.handleFileChange(event.document.uri, 'modified');
+        });
+        
+        // Listen for file creation and deletion
+        const fileCreateListener = vscode.workspace.onDidCreateFiles((event) => {
+            for (const file of event.files) {
+                this.intelligentTriggers.handleFileChange(file, 'created');
             }
-        })
-    );
-}
-
-function registerCommands(context: vscode.ExtensionContext, extContext: ExtensionContext) {
-    // Start Gemini Workflow
-    context.subscriptions.push(
-        vscode.commands.registerCommand('claude-assistant.startGeminiWorkflow', async () => {
-            try {
-                await extContext.workflowPanel.show();
-                await extContext.geminiWorkflow.startWorkflow();
-            } catch (error) {
-                vscode.window.showErrorMessage(`Failed to start workflow: ${error}`);
+        });
+        
+        const fileDeleteListener = vscode.workspace.onDidDeleteFiles((event) => {
+            for (const file of event.files) {
+                this.intelligentTriggers.handleFileChange(file, 'deleted');
             }
-        })
-    );
-
-    // Analyze Project
-    context.subscriptions.push(
-        vscode.commands.registerCommand('claude-assistant.analyzeProject', async (uri?: vscode.Uri) => {
-            try {
-                const targetUri = uri || vscode.workspace.workspaceFolders?.[0]?.uri;
-                if (!targetUri) {
-                    vscode.window.showErrorMessage('No folder selected for analysis');
-                    return;
-                }
-                
-                await vscode.window.withProgress({
-                    location: vscode.ProgressLocation.Notification,
-                    title: "Analyzing project...",
-                    cancellable: true
-                }, async (progress, token) => {
-                    await extContext.projectIntelligence.analyzeFolder(targetUri, progress, token);
-                });
-                
-                vscode.window.showInformationMessage('Project analysis complete!');
-            } catch (error) {
-                vscode.window.showErrorMessage(`Project analysis failed: ${error}`);
+        });
+        
+        // Listen for workspace changes
+        const workspaceListener = vscode.workspace.onDidChangeWorkspaceFolders((event) => {
+            this.handleWorkspaceChange(event);
+        });
+        
+        // Register all listeners for cleanup
+        this.extensionContext.subscriptions.push(
+            diagnosticListener,
+            fileChangeListener,
+            fileCreateListener,
+            fileDeleteListener,
+            workspaceListener
+        );
+        
+        console.log('👂 Event listeners configured');
+    }
+    
+    /**
+     * Starts intelligent monitoring that provides proactive assistance.
+     */
+    private async startIntelligentMonitoring(): Promise<void> {
+        console.log('🔍 Starting intelligent monitoring...');
+        
+        // Start periodic analysis of trigger conditions
+        setInterval(() => {
+            this.intelligentTriggers.analyzeTriggerConditions().catch(console.error);
+        }, 30000); // Every 30 seconds
+        
+        // Start periodic project intelligence updates
+        setInterval(() => {
+            this.updateProjectIntelligence().catch(console.error);
+        }, 300000); // Every 5 minutes
+        
+        // Start periodic memory maintenance
+        setInterval(() => {
+            this.performMemoryMaintenance().catch(console.error);
+        }, 3600000); // Every hour
+        
+        console.log('🎯 Intelligent monitoring active');
+    }
+    
+    /**
+     * Command Handlers - These methods handle user-invoked commands
+     */
+    
+    /**
+     * Handles the main command to start a new Gemini workflow.
+     * This demonstrates how user intent gets translated into systematic
+     * development processes.
+     */
+    private async handleStartGeminiWorkflow(): Promise<void> {
+        try {
+            // Get project intelligence first
+            const projectIntel = await this.projectIntelligence.getProjectIntelligence();
+            if (!projectIntel) {
+                vscode.window.showWarningMessage('No workspace is open. Please open a project folder first.');
+                return;
             }
-        })
-    );
-
-    // Execute with Context
-    context.subscriptions.push(
-        vscode.commands.registerCommand('claude-assistant.executeWithContext', async () => {
-            try {
-                const editor = vscode.window.activeTextEditor;
-                if (!editor) {
-                    vscode.window.showErrorMessage('No active editor');
-                    return;
-                }
-
-                const selection = editor.selection;
-                const text = selection.isEmpty 
-                    ? editor.document.getText() 
-                    : editor.document.getText(selection);
-
-                const context = await extContext.projectIntelligence.getContextForFile(editor.document.uri);
-                const result = await extContext.claudeInterface.executeWithContext(text, context);
+            
+            // Get workflow details from user
+            const workflowTitle = await vscode.window.showInputBox({
+                prompt: 'What would you like to accomplish?',
+                placeHolder: 'e.g., "Add user authentication", "Refactor data layer", "Fix performance issues"',
+                ignoreFocusOut: true
+            });
+            
+            if (!workflowTitle) return;
+            
+            const workflowDescription = await vscode.window.showInputBox({
+                prompt: 'Provide more details about what you want to achieve',
+                placeHolder: 'Describe your requirements, constraints, or specific goals...',
+                ignoreFocusOut: true
+            });
+            
+            if (!workflowDescription) return;
+            
+            // Get priority level
+            const priorityOptions = [
+                { label: 'High Priority', detail: 'Urgent work that blocks other tasks', value: 'high' as WorkflowPriority },
+                { label: 'Medium Priority', detail: 'Important work that should be completed soon', value: 'medium' as WorkflowPriority },
+                { label: 'Low Priority', detail: 'Nice-to-have improvements or enhancements', value: 'low' as WorkflowPriority }
+            ];
+            
+            const selectedPriority = await vscode.window.showQuickPick(priorityOptions, {
+                placeHolder: 'Select priority level for this workflow'
+            });
+            
+            const priority = selectedPriority?.value || 'medium';
+            
+            // Start the workflow
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: "Creating Gemini Workflow...",
+                cancellable: false
+            }, async (progress) => {
+                progress.report({ increment: 0, message: "Analyzing requirements..." });
                 
-                // Show result in output channel
-                const outputChannel = vscode.window.createOutputChannel('Claude Code Result');
-                outputChannel.appendLine(result);
-                outputChannel.show();
-                
-                // Store in memory
-                await extContext.memorySystem.recordExecution({
-                    input: text,
-                    context: context,
-                    result: result,
-                    timestamp: new Date()
-                });
-            } catch (error) {
-                vscode.window.showErrorMessage(`Execution failed: ${error}`);
-            }
-        })
-    );
-
-    // Show Project Memory
-    context.subscriptions.push(
-        vscode.commands.registerCommand('claude-assistant.showProjectMemory', async () => {
-            try {
-                const memories = await extContext.memorySystem.getRecentMemories();
-                const quickPick = vscode.window.createQuickPick();
-                quickPick.items = memories.map(m => ({
-                    label: new Date(m.timestamp).toLocaleString(),
-                    description: m.input.substring(0, 50) + '...',
-                    detail: m.result.substring(0, 100) + '...',
-                    memory: m
-                }));
-                
-                quickPick.onDidChangeSelection(selection => {
-                    if (selection[0]) {
-                        const memory = (selection[0] as any).memory;
-                        // Show detailed memory view
-                        vscode.window.showInformationMessage(
-                            `Memory from ${new Date(memory.timestamp).toLocaleString()}`,
-                            'View Details'
-                        ).then(action => {
-                            if (action === 'View Details') {
-                                const panel = vscode.window.createWebviewPanel(
-                                    'memoryDetails',
-                                    'Memory Details',
-                                    vscode.ViewColumn.One,
-                                    {}
-                                );
-                                panel.webview.html = getMemoryDetailHtml(memory);
-                            }
-                        });
-                    }
-                });
-                
-                quickPick.show();
-            } catch (error) {
-                vscode.window.showErrorMessage(`Failed to show memory: ${error}`);
-            }
-        })
-    );
-
-    // Configure Workflow
-    context.subscriptions.push(
-        vscode.commands.registerCommand('claude-assistant.configureWorkflow', async () => {
-            try {
-                const config = vscode.workspace.getConfiguration('claude-assistant');
-                const items = [
-                    { label: 'simple', description: 'Quick 3-step workflow' },
-                    { label: 'standard', description: 'Standard 5-step workflow' },
-                    { label: 'comprehensive', description: 'Full 10-step workflow' }
-                ];
-                const complexity = await vscode.window.showQuickPick(items, {
-                    placeHolder: 'Select workflow complexity'
-                });
-                
-                if (complexity) {
-                    await config.update('workflowComplexity', complexity.label, vscode.ConfigurationTarget.Workspace);
-                    vscode.window.showInformationMessage(`Workflow complexity set to ${complexity.label}`);
-                }
-            } catch (error) {
-                vscode.window.showErrorMessage(`Configuration failed: ${error}`);
-            }
-        })
-    );
-
-    // Review Last Execution
-    context.subscriptions.push(
-        vscode.commands.registerCommand('claude-assistant.reviewLastExecution', async () => {
-            try {
-                const lastExecution = await extContext.memorySystem.getLastExecution();
-                if (!lastExecution) {
-                    vscode.window.showInformationMessage('No previous execution found');
-                    return;
-                }
-                
-                const panel = vscode.window.createWebviewPanel(
-                    'executionReview',
-                    'Last Execution Review',
-                    vscode.ViewColumn.One,
-                    { enableScripts: true }
+                const workflow = await this.workflowEngine.startWorkflow(
+                    workflowTitle,
+                    workflowDescription,
+                    projectIntel,
+                    priority
                 );
                 
-                panel.webview.html = getExecutionReviewHtml(lastExecution);
-            } catch (error) {
-                vscode.window.showErrorMessage(`Failed to review execution: ${error}`);
-            }
-        })
-    );
-}
-
-function registerViews(context: vscode.ExtensionContext, extContext: ExtensionContext) {
-    // Register tree data providers
-    vscode.window.createTreeView('claude-assistant.memory', {
-        treeDataProvider: extContext.memorySystem.getTreeDataProvider(),
-        showCollapseAll: true
-    });
-
-    // Register webview providers
-    vscode.window.registerWebviewViewProvider(
-        'claude-assistant.workflow',
-        extContext.workflowPanel
-    );
-    
-    vscode.window.registerWebviewViewProvider(
-        'claude-assistant.context',
-        extContext.contextViewer
-    );
-}
-
-function updateConfiguration(extContext: ExtensionContext) {
-    const config = vscode.workspace.getConfiguration('claude-assistant');
-    
-    // Update claude interface
-    extContext.claudeInterface.updatePath(config.get('claudeCodePath') || 'claude-code');
-    
-    // Update memory retention
-    extContext.memorySystem.setRetentionDays(config.get('memoryRetention') || 30);
-    
-    // Update workflow complexity
-    extContext.geminiWorkflow.setComplexity(config.get('workflowComplexity') || 'standard');
-    
-    // Update intelligent suggestions
-    extContext.intelligentTriggers.setEnabled(config.get('intelligentSuggestions') || true);
-}
-
-function getMemoryDetailHtml(memory: any): string {
-    return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body { 
-                    font-family: var(--vscode-font-family); 
-                    padding: 20px;
-                    color: var(--vscode-foreground);
-                    background-color: var(--vscode-editor-background);
+                progress.report({ increment: 50, message: "Setting up workflow phases..." });
+                
+                // Track active workflow
+                this.activeWorkflows.set(workflow.id, workflow);
+                
+                progress.report({ increment: 100, message: "Workflow ready!" });
+                
+                // Show workflow panel
+                await vscode.commands.executeCommand('claude-assistant.workflow.focus');
+                
+                // Ask if user wants to start execution immediately
+                const startNow = await vscode.window.showInformationMessage(
+                    `Workflow "${workflow.title}" created with ${workflow.phases.length} phases. Start execution now?`,
+                    'Start Now', 'Review First'
+                );
+                
+                if (startNow === 'Start Now') {
+                    await this.executeWorkflowPhase(workflow.id, projectIntel);
                 }
-                .section { 
-                    margin-bottom: 20px;
-                    border: 1px solid var(--vscode-panel-border);
-                    padding: 15px;
-                    border-radius: 5px;
-                }
-                h2 { 
-                    color: var(--vscode-titleBar-activeForeground);
-                    margin-top: 0;
-                }
-                pre { 
-                    background: var(--vscode-textBlockQuote-background);
-                    padding: 10px;
-                    border-radius: 3px;
-                    overflow-x: auto;
-                }
-                .timestamp {
-                    color: var(--vscode-descriptionForeground);
-                    font-style: italic;
-                }
-            </style>
-        </head>
-        <body>
-            <h1>Memory Details</h1>
-            <p class="timestamp">${new Date(memory.timestamp).toLocaleString()}</p>
+            });
             
-            <div class="section">
-                <h2>Input</h2>
-                <pre>${escapeHtml(memory.input)}</pre>
-            </div>
-            
-            <div class="section">
-                <h2>Context</h2>
-                <pre>${escapeHtml(JSON.stringify(memory.context, null, 2))}</pre>
-            </div>
-            
-            <div class="section">
-                <h2>Result</h2>
-                <pre>${escapeHtml(memory.result)}</pre>
-            </div>
-        </body>
-        </html>
-    `;
-}
-
-function getExecutionReviewHtml(execution: any): string {
-    return getMemoryDetailHtml(execution); // Reuse the same format
-}
-
-function escapeHtml(text: string): string {
-    const map: { [key: string]: string } = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    return text.replace(/[&<>"']/g, m => map[m]);
-}
-
-export function deactivate() {
-    // Cleanup
-    if (extensionContext) {
-        extensionContext.intelligentTriggers.dispose();
-        extensionContext.workflowPanel.dispose();
-        extensionContext.memorySystem.dispose();
+        } catch (error) {
+            console.error('Error starting Gemini workflow:', error);
+            vscode.window.showErrorMessage(`Failed to start workflow: ${error}`);
+        }
     }
+    
+    /**
+     * Handles direct execution of Claude Code with comprehensive context.
+     * This provides immediate assistance while still leveraging all our
+     * intelligence systems.
+     */
+    private async handleExecuteWithContext(): Promise<void> {
+        try {
+            const projectIntel = await this.projectIntelligence.getProjectIntelligence();
+            if (!projectIntel) {
+                vscode.window.showWarningMessage('No workspace is open. Please open a project folder first.');
+                return;
+            }
+            
+            // Get instruction from user
+            const instruction = await vscode.window.showInputBox({
+                prompt: 'What would you like Claude Code to help you with?',
+                placeHolder: 'e.g., "Fix the error in this function", "Add error handling", "Optimize this algorithm"',
+                ignoreFocusOut: true
+            });
+            
+            if (!instruction) return;
+            
+            // Build comprehensive execution context
+            const context = await this.buildExecutionContext(projectIntel, instruction);
+            
+            // Execute with Claude Code
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: "Executing with Claude Code...",
+                cancellable: false
+            }, async (progress) => {
+                progress.report({ increment: 0, message: "Preparing context..." });
+                
+                const execution = await this.claudeCodeInterface.executeWithContext(
+                    instruction,
+                    context,
+                    projectIntel.rootPath
+                );
+                
+                progress.report({ increment: 100, message: "Execution completed!" });
+                
+                // Record the experience
+                const mockWorkflow = await this.createMockWorkflow(instruction, projectIntel);
+                await this.memorySystem.recordExperience(execution, mockWorkflow, projectIntel);
+                
+                // Show results
+                if (execution.success) {
+                    vscode.window.showInformationMessage(
+                        `Claude Code execution completed successfully in ${Math.round(execution.duration / 1000)}s`
+                    );
+                } else {
+                    vscode.window.showWarningMessage(
+                        `Claude Code execution encountered issues. Check output for details.`
+                    );
+                }
+            });
+            
+        } catch (error) {
+            console.error('Error executing with context:', error);
+            vscode.window.showErrorMessage(`Execution failed: ${error}`);
+        }
+    }
+    
+    /**
+     * Handles project analysis command that provides comprehensive
+     * understanding of the current project state.
+     */
+    private async handleAnalyzeProject(): Promise<void> {
+        try {
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: "Analyzing project...",
+                cancellable: false
+            }, async (progress) => {
+                progress.report({ increment: 0, message: "Scanning project structure..." });
+                
+                const projectIntel = await this.projectIntelligence.getProjectIntelligence(true);
+                
+                progress.report({ increment: 100, message: "Analysis complete!" });
+                
+                if (projectIntel) {
+                    // Show analysis results
+                    const message = [
+                        `Project: ${projectIntel.name}`,
+                        `Type: ${projectIntel.projectType}`,
+                        `Architecture: ${projectIntel.architecture.primaryPattern}`,
+                        `Primary Language: ${projectIntel.technologies.primaryLanguage}`,
+                        `Quality Score: ${Math.round(projectIntel.codeQuality.codeComplexity * 10)}/10`
+                    ].join('\n');
+                    
+                    vscode.window.showInformationMessage(
+                        'Project analysis complete!',
+                        'View Details'
+                    ).then(selection => {
+                        if (selection === 'View Details') {
+                            // Show detailed analysis in a new document
+                            this.showDetailedAnalysis(projectIntel);
+                        }
+                    });
+                } else {
+                    vscode.window.showWarningMessage('No project found to analyze. Please open a project folder.');
+                }
+            });
+            
+        } catch (error) {
+            console.error('Error analyzing project:', error);
+            vscode.window.showErrorMessage(`Project analysis failed: ${error}`);
+        }
+    }
+    
+    /**
+     * Helper methods for command handling and system coordination
+     */
+    
+    private async buildExecutionContext(
+        projectIntel: ProjectIntelligence,
+        instruction: string
+    ): Promise<ExecutionContext> {
+        // Get relevant memories
+        const relevantMemories = await this.memorySystem.getRelevantMemories(
+            instruction,
+            projectIntel,
+            5
+        );
+        
+        // Get applicable patterns
+        const applicablePatterns = await this.memorySystem.getApplicablePatterns(
+            instruction,
+            projectIntel,
+            3
+        );
+        
+        // Build comprehensive context
+        const context: ExecutionContext = {
+            projectIntelligence: projectIntel,
+            currentWorkflow: await this.createMockWorkflow(instruction, projectIntel),
+            currentPhase: await this.createMockPhase(instruction),
+            relevantMemories,
+            similarExecutions: [], // Would be populated from memory system
+            learnedPatterns: applicablePatterns,
+            activeFiles: this.getActiveFiles(),
+            recentChanges: [], // Would be populated from file monitoring
+            currentErrors: this.getCurrentErrors(),
+            suggestedApproaches: [], // Would be generated based on context
+            cautionAreas: [], // Would be identified from project analysis
+            successCriteria: this.generateSuccessCriteria(instruction)
+        };
+        
+        return context;
+    }
+    
+    private async executeWorkflowPhase(workflowId: string, projectIntel: ProjectIntelligence): Promise<void> {
+        const workflow = this.activeWorkflows.get(workflowId);
+        if (!workflow) {
+            vscode.window.showErrorMessage('Workflow not found');
+            return;
+        }
+        
+        try {
+            const isComplete = await this.workflowEngine.executeNextPhase(workflowId, projectIntel);
+            
+            if (isComplete) {
+                vscode.window.showInformationMessage(`Workflow "${workflow.title}" completed successfully!`);
+                this.activeWorkflows.delete(workflowId);
+            } else {
+                // Ask if user wants to continue to next phase
+                const continueExecution = await vscode.window.showInformationMessage(
+                    `Phase completed. Continue to next phase?`,
+                    'Continue', 'Pause'
+                );
+                
+                if (continueExecution === 'Continue') {
+                    await this.executeWorkflowPhase(workflowId, projectIntel);
+                }
+            }
+            
+        } catch (error) {
+            console.error('Error executing workflow phase:', error);
+            vscode.window.showErrorMessage(`Phase execution failed: ${error}`);
+        }
+    }
+    
+    private setupStatusBar(): void {
+        this.statusBarItem.text = '$(robot) Claude Assistant';
+        this.statusBarItem.tooltip = 'Claude Gemini Assistant - Click for quick actions';
+        this.statusBarItem.command = 'claude-assistant.startGeminiWorkflow';
+        this.statusBarItem.show();
+        
+        this.extensionContext.subscriptions.push(this.statusBarItem);
+    }
+    
+    private setupFileSystemMonitoring(): void {
+        // Set up file system watchers for project intelligence updates
+        const fileWatcher = vscode.workspace.createFileSystemWatcher('**/*');
+        
+        fileWatcher.onDidChange((uri) => {
+            this.intelligentTriggers.handleFileChange(uri, 'modified');
+        });
+        
+        fileWatcher.onDidCreate((uri) => {
+            this.intelligentTriggers.handleFileChange(uri, 'created');
+        });
+        
+        fileWatcher.onDidDelete((uri) => {
+            this.intelligentTriggers.handleFileChange(uri, 'deleted');
+        });
+        
+        this.extensionContext.subscriptions.push(fileWatcher);
+    }
+    
+    private showInitializationComplete(): void {
+        this.outputChannel.appendLine('🎉 Claude Gemini Assistant is ready!');
+        this.outputChannel.appendLine('');
+        this.outputChannel.appendLine('Available commands:');
+        this.outputChannel.appendLine('• Ctrl+Shift+G: Start Gemini Workflow');
+        this.outputChannel.appendLine('• Ctrl+Shift+C: Execute with Context');
+        this.outputChannel.appendLine('• Command Palette: Search for "Claude" commands');
+        this.outputChannel.appendLine('');
+        this.outputChannel.appendLine('The assistant is now monitoring your development activity');
+        this.outputChannel.appendLine('and will offer proactive assistance when helpful.');
+        
+        // Update status bar to show ready state
+        this.statusBarItem.text = '$(robot) Claude Ready';
+        this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
+    }
+    
+    // Additional helper methods
+    private getActiveFiles(): string[] {
+        const activeEditor = vscode.window.activeTextEditor;
+        if (activeEditor) {
+            return [activeEditor.document.uri.fsPath];
+        }
+        return [];
+    }
+    
+    private getCurrentErrors(): any[] {
+        // Would collect current diagnostics
+        return [];
+    }
+    
+    private generateSuccessCriteria(instruction: string): string[] {
+        return [
+            'Task completed as requested',
+            'No new errors introduced',
+            'Code quality maintained or improved',
+            'Changes align with project patterns'
+        ];
+    }
+    
+    private async updateProjectIntelligence(): Promise<void> {
+        try {
+            await this.projectIntelligence.getProjectIntelligence(false);
+        } catch (error) {
+            console.error('Error updating project intelligence:', error);
+        }
+    }
+    
+    private async performMemoryMaintenance(): Promise<void> {
+        // Memory maintenance would be handled by the memory system
+        console.log('🧹 Performing memory maintenance...');
+    }
+    
+    private async handleWorkspaceChange(event: vscode.WorkspaceFoldersChangeEvent): Promise<void> {
+        // Handle workspace changes by reinitializing relevant systems
+        if (event.added.length > 0) {
+            console.log('📁 New workspace folders detected, updating project intelligence...');
+            await this.projectIntelligence.getProjectIntelligence(true);
+        }
+    }
+    
+    // Placeholder methods for remaining command handlers
+    private async handleShowProjectMemory(): Promise<void> {
+        vscode.window.showInformationMessage('Project memory viewer would be shown here');
+    }
+    
+    private async handleConfigureWorkflow(): Promise<void> {
+        vscode.window.showInformationMessage('Workflow configuration would be shown here');
+    }
+    
+    private async handleReviewLastExecution(): Promise<void> {
+        vscode.window.showInformationMessage('Last execution review would be shown here');
+    }
+    
+    private async showDetailedAnalysis(projectIntel: ProjectIntelligence): Promise<void> {
+        // Would create and show a detailed analysis document
+        console.log('Showing detailed analysis for:', projectIntel.name);
+    }
+    
+    private async createMockWorkflow(instruction: string, projectIntel: ProjectIntelligence): Promise<GeminiWorkflow> {
+        // Creates a simple workflow for tracking standalone executions
+        return {
+            id: 'mock_' + Date.now(),
+            projectId: projectIntel.projectId,
+            title: 'Direct Execution',
+            description: instruction,
+            createdAt: new Date(),
+            lastUpdated: new Date(),
+            status: 'executing',
+            priority: 'medium',
+            complexity: 'simple',
+            phases: [],
+            currentPhaseIndex: 0,
+            initialContext: projectIntel,
+            contextUpdates: [],
+            learningOutcomes: [],
+            claudeCodeExecutions: [],
+            totalExecutionTime: 0,
+            successCriteria: [],
+            completionPercentage: 0
+        };
+    }
+    
+    private async createMockPhase(instruction: string): Promise<any> {
+        return {
+            id: 'mock_phase_' + Date.now(),
+            name: 'Direct Execution',
+            description: instruction,
+            type: 'implementation',
+            status: 'in-progress'
+        };
+    }
+    
+    /**
+     * Cleanup method called when extension is deactivated
+     */
+    dispose(): void {
+        console.log('🛑 Claude Gemini Assistant shutting down...');
+        
+        // Dispose of systems that need cleanup
+        if (this.projectIntelligence) {
+            this.projectIntelligence.dispose();
+        }
+        
+        // Clear active workflows
+        this.activeWorkflows.clear();
+        
+        console.log('✅ Claude Gemini Assistant shutdown complete');
+    }
+}
+
+// Extension activation function - called when VS Code loads the extension
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
+    console.log('🚀 Activating Claude Gemini Assistant...');
+    
+    try {
+        // Create and initialize the main assistant
+        const assistant = new ClaudeGeminiAssistant(context);
+        await assistant.initialize();
+        
+        // Store assistant instance for deactivation
+        context.subscriptions.push({
+            dispose: () => assistant.dispose()
+        });
+        
+        console.log('✅ Claude Gemini Assistant activated successfully');
+        
+    } catch (error) {
+        console.error('❌ Failed to activate Claude Gemini Assistant:', error);
+        vscode.window.showErrorMessage(`Failed to activate assistant: ${error}`);
+        throw error;
+    }
+}
+
+// Extension deactivation function - called when VS Code unloads the extension
+export function deactivate(): void {
+    console.log('🛑 Claude Gemini Assistant deactivating...');
+    // Cleanup is handled by the dispose methods registered in subscriptions
 }
