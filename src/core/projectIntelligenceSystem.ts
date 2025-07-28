@@ -114,6 +114,10 @@ export class ProjectIntelligenceSystem {
         return 'monolithic';
     }
     
+    getProjectIntelligenceInstance(): ProjectIntelligence {
+        return this.projectIntelligence;
+    }
+    
     dispose(): void {
         // Cleanup if needed
         this.cachedIntelligence = null;

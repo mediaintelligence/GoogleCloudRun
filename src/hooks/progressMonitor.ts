@@ -1,4 +1,30 @@
 
+import * as vscode from 'vscode';
+import { MemorySystem } from '../core/memorySystem';
+import { ProjectIntelligence } from '../core/projectIntelligence';
+import { 
+    WorkflowPhase, 
+    PhaseStatus,
+    ActivitySummary,
+    FileModificationSummary,
+    ErrorSummary,
+    DateRange
+} from '../types/interfaces';
+
+/**
+ * ProgressMonitor tracks development progress and productivity patterns
+ */
+export class ProgressMonitor {
+    private sessionStartTime: Date;
+    private statusBarItem: vscode.StatusBarItem;
+    private fileModifications: Map<string, FileModification[]> = new Map();
+    private errorTracking: Map<string, ErrorTracking> = new Map();
+    private searchHistory: string[] = [];
+    private documentationVisited: string[] = [];
+    private focusSessions: FocusSession[] = [];
+    private currentFocusSession: FocusSession | null = null;
+    private updateInterval: NodeJS.Timeout | null = null;
+
     constructor(
         private context: vscode.ExtensionContext,
         private memorySystem: MemorySystem,

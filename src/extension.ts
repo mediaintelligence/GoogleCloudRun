@@ -150,7 +150,7 @@ class ClaudeGeminiAssistant {
         this.memoryAwareHook = new MemoryAwareHook(
             this.extensionContext,
             this.memorySystem,
-            this.projectIntelligence
+            this.projectIntelligence.getProjectIntelligenceInstance()
         );
     }
     
