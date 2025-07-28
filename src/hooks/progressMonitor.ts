@@ -1,30 +1,3 @@
-import * as vscode from 'vscode';
-import { 
-    ActivitySummary,
-    FileModificationSummary,
-    ErrorSummary,
-    DateRange,
-    ProjectContext,
-    WorkflowPhase,
-    PhaseStatus
-} from '../types/interfaces';
-import { MemorySystem } from '../core/memorySystem';
-import { ProjectIntelligence } from '../core/projectIntelligence';
-
-/**
- * Monitors development progress and provides insights into productivity patterns.
- * Tracks coding velocity, error resolution rates, and workflow efficiency.
- */
-export class ProgressMonitor {
-    private sessionStartTime: Date;
-    private fileModifications: Map<string, FileModification[]> = new Map();
-    private errorTracking: Map<string, ErrorTracking> = new Map();
-    private searchHistory: string[] = [];
-    private documentationVisited: string[] = [];
-    private focusSessions: FocusSession[] = [];
-    private currentFocusSession: FocusSession | null = null;
-    private statusBarItem: vscode.StatusBarItem;
-    private updateInterval: ReturnType<typeof setInterval> | undefined;
 
     constructor(
         private context: vscode.ExtensionContext,
