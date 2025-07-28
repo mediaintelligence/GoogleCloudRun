@@ -232,7 +232,9 @@
     "test:watch": "jest --watch",
     "lint": "eslint src --ext ts",
     "clean": "rimraf dist",
-    "deploy": "vsce publish"
+    "deploy": "vsce publish",
+    "launch": "code --extensionDevelopmentPath=.",
+    "launch:cursor": "cursor --extensionDevelopmentPath=."
   },
   "devDependencies": {
     "@types/node": "20.x",
