@@ -7,6 +7,7 @@ import { ProjectIntelligenceSystem } from './core/projectIntelligenceSystem';
 import { MemorySystem } from './core/memorySystem';
 import { GeminiWorkflowEngine } from './core/geminiWorkflow';
 import { ClaudeCodeInterface } from './core/claudeCodeInterface';
+import { MultiModelOrchestrator } from './core/multiModelOrchestrator';
 
 // Intelligent systems imports
 import { IntelligentTriggers } from './hooks/intelligentTriggers';
@@ -43,6 +44,7 @@ class ClaudeGeminiAssistant {
     private memorySystem!: MemorySystem;
     private workflowEngine!: GeminiWorkflowEngine;
     private claudeCodeInterface!: ClaudeCodeInterface;
+    private multiModelOrchestrator!: MultiModelOrchestrator;
     
     // Intelligent systems
     private intelligentTriggers!: IntelligentTriggers;
