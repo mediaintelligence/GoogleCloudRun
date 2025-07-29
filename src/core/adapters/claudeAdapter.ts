@@ -77,7 +77,7 @@ export class ClaudeAdapter extends BaseLLMAdapter {
     }
     
     private formatRequest(request: LLMRequest): any {
-        const messages = [
+        const messages: Array<{role: string; content: string | any[]}> = [
             {
                 role: 'user',
                 content: request.prompt

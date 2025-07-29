@@ -24,7 +24,6 @@
     "code analysis",
     "workflow automation"
   ],
-  "icon": "resources/icons/gemini-icon.png",
   "galleryBanner": {
     "color": "#1a73e8",
     "theme": "dark"

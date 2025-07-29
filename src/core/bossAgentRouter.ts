@@ -109,8 +109,8 @@ export class BossAgentRouter {
             contentHash,
             complexity: this.calculateComplexityScore(request),
             estimatedTokens: tokenCount,
-            requiresTools: request.tools && request.tools.length > 0,
-            hasVision: request.images && request.images.length > 0,
+            requiresTools: !!(request.tools && request.tools.length > 0),
+            hasVision: !!(request.images && request.images.length > 0),
             hasCode: this.detectCodeContent(request.prompt),
             taskType: await this.classifyTaskType(request.prompt),
             userContext: await this.getUserContext()
@@ -337,11 +337,12 @@ export class BossAgentRouter {
     }
     
     private estimateCost(model: ModelProvider, tokens: number): number {
-        const rates = {
+        const rates: Record<ModelProvider, number> = {
             'claude4': 0.015,
             'gpt4o': 0.01,
             'gemini25': 0.005,
-            'grok4': 0.02
+            'grok4': 0.02,
+            'cache': 0
         };
         return (rates[model] || 0.01) * tokens / 1000;
     }

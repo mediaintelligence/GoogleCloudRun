@@ -84,6 +84,19 @@ export abstract class BaseLLMAdapter implements LLMAdapter {
     
     abstract generate(request: LLMRequest, options?: GenerationOptions): Promise<LLMResponse>;
     
+    async getPricing(): Promise<ModelPricing> {
+        // Default pricing implementation - override in specific adapters
+        return {
+            inputTokenCost: 0.01,
+            outputTokenCost: 0.02,
+            currency: 'USD',
+            rateLimits: {
+                requestsPerMinute: 100,
+                tokensPerMinute: 100000
+            }
+        };
+    }
+    
     async generateStream(
         request: LLMRequest,
         onChunk: (chunk: string) => void,

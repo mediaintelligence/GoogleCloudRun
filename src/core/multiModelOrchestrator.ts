@@ -242,16 +242,16 @@ export class MultiModelOrchestrator {
         
         // Add project context if available
         if (context?.includeProjectContext) {
-            const projectContext = await this.projectIntelligence.getContext();
+            const projectContext = await this.projectIntelligence.getProjectContext();
             request.context = [JSON.stringify(projectContext)];
         }
         
         // Add relevant memories
         if (this.memorySystem) {
-            const relevantMemories = await this.memorySystem.searchRelevantMemories(prompt);
+            const relevantMemories = await this.memorySystem.getRelevantMemories(prompt, this.projectIntelligence as any, 5);
             if (relevantMemories.length > 0) {
                 request.context = request.context || [];
-                request.context.push(`Relevant past experiences:\n${relevantMemories.map(m => m.content).join('\n')}`);
+                request.context.push(`Relevant past experiences:\n${relevantMemories.map((m: any) => m.content).join('\n')}`);
             }
         }
         
@@ -302,17 +302,11 @@ export class MultiModelOrchestrator {
     ): Promise<void> {
         // Record this interaction for learning and improvement
         if (this.memorySystem) {
-            await this.memorySystem.addMemory({
-                type: 'ai_interaction',
-                content: request.prompt.slice(0, 200),
-                context: {
-                    selectedModel: decision.primaryModel,
-                    confidence: decision.confidence,
-                    cost: response.cost,
-                    success: true
-                },
-                timestamp: new Date(),
-                relevanceScore: 0.8
+            await this.memorySystem.recordExecution({
+                input: request.prompt.slice(0, 200),
+                result: response.content.slice(0, 200),
+                context: await this.projectIntelligence.getProjectContext() as any,
+                timestamp: new Date()
             });
         }
     }

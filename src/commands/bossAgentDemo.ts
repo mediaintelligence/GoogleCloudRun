@@ -300,7 +300,7 @@ export class BossAgentDemo {
             <div class="section">
                 <h2>🔧 Optimization Suggestions</h2>
                 <ul>
-                    ${response.suggestions.map(s => `<li>${s}</li>`).join('')}
+                    ${response.suggestions.map((s: string) => `<li>${s}</li>`).join('')}
                 </ul>
             </div>
             ` : ''}

@@ -7,12 +7,48 @@ import { ProjectIntelligence as IProjectIntelligence, ProjectContext } from '../
 /**
  * Wrapper class that adapts the ProjectIntelligence class to the expected interface
  */
-export class ProjectIntelligenceSystem {
+export class ProjectIntelligenceSystem implements IProjectIntelligence {
     private projectIntelligence: ProjectIntelligence;
     private cachedIntelligence: IProjectIntelligence | null = null;
     
+    // IProjectIntelligence properties
+    projectId: string = '';
+    rootPath: string = '';
+    name: string = '';
+    description: string = '';
+    projectType: string = '';
+    fileCount: number = 0;
+    architecture: any = {};
+    technologies: any = {};
+    testingFramework: string = '';
+    buildSystem: string = '';
+    patterns: any[] = [];
+    conventions: any = {};
+    codeQuality: any = {};
+    teamContext: any = {};
+    dependencies: any[] = [];
+    recentActivity: any = {};
+    
     constructor(private context: vscode.ExtensionContext) {
         this.projectIntelligence = new ProjectIntelligence(context);
+        this.initializeFromWorkspace();
+    }
+    
+    private async initializeFromWorkspace() {
+        const intel = await this.getProjectIntelligence();
+        if (intel) {
+            Object.assign(this, intel);
+        }
+    }
+    
+    async getProjectContext(): Promise<any> {
+        return {
+            projectId: this.projectId,
+            rootPath: this.rootPath,
+            name: this.name,
+            projectType: this.projectType,
+            technologies: this.technologies
+        };
     }
     
     async getProjectIntelligence(forceRefresh: boolean = false): Promise<IProjectIntelligence | null> {
