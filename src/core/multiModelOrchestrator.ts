@@ -242,16 +242,16 @@ export class MultiModelOrchestrator {
         
         // Add project context if available
         if (context?.includeProjectContext) {
-            const projectContext = await this.projectIntelligence.getContext();
+            const projectContext = await this.projectIntelligence.getProjectIntelligence();
             request.context = [JSON.stringify(projectContext)];
         }
         
         // Add relevant memories
         if (this.memorySystem) {
-            const relevantMemories = await this.memorySystem.searchRelevantMemories(prompt);
+            const relevantMemories = await this.memorySystem.searchMemories(prompt);
             if (relevantMemories.length > 0) {
                 request.context = request.context || [];
-                request.context.push(`Relevant past experiences:\n${relevantMemories.map(m => m.content).join('\n')}`);
+                request.context.push(`Relevant past experiences:\n${relevantMemories.map(m => m.result).join('\n')}`);
             }
         }
         
