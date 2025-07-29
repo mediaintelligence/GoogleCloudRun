@@ -2,7 +2,7 @@
 
 import * as vscode from 'vscode';
 import { ProjectIntelligence } from './projectIntelligence';
-import { ProjectIntelligence as IProjectIntelligence } from '../types/interfaces';
+import { ProjectIntelligence as IProjectIntelligence, ProjectContext } from '../types/interfaces';
 
 /**
  * Wrapper class that adapts the ProjectIntelligence class to the expected interface
@@ -116,6 +116,10 @@ export class ProjectIntelligenceSystem {
     
     getProjectIntelligenceInstance(): ProjectIntelligence {
         return this.projectIntelligence;
+    }
+    
+    async getContextForFile(uri: vscode.Uri): Promise<ProjectContext> {
+        return await this.projectIntelligence.getContextForFile(uri);
     }
     
     dispose(): void {

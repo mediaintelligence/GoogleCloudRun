@@ -242,7 +242,7 @@ export class MultiModelOrchestrator {
         
         // Add project context if available
         if (context?.includeProjectContext) {
-            const projectContext = await this.projectIntelligence.getContext();
+            const projectContext = await this.projectIntelligence.getProjectIntelligence();
             request.context = [JSON.stringify(projectContext)];
         }
         
