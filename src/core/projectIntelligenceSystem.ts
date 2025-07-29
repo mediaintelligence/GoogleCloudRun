@@ -2,7 +2,7 @@
 
 import * as vscode from 'vscode';
 import { ProjectIntelligence } from './projectIntelligence';
-import { ProjectIntelligence as IProjectIntelligence } from '../types/interfaces';
+import { ProjectIntelligence as IProjectIntelligence, ProjectContext } from '../types/interfaces';
 
 /**
  * Wrapper class that adapts the ProjectIntelligence class to the expected interface
@@ -13,6 +13,17 @@ export class ProjectIntelligenceSystem {
     
     constructor(private context: vscode.ExtensionContext) {
         this.projectIntelligence = new ProjectIntelligence(context);
+    }
+    
+    /**
+     * Returns detailed context information for the supplied file by delegating
+     * the call to the underlying ProjectIntelligence instance.  This helper
+     * makes the frequently-used getContextForFile API available directly on
+     * the ProjectIntelligenceSystem wrapper so that callers do not need to
+     * fetch the inner instance manually.
+     */
+    async getContextForFile(uri: vscode.Uri): Promise<ProjectContext> {
+        return this.projectIntelligence.getContextForFile(uri);
     }
     
     async getProjectIntelligence(forceRefresh: boolean = false): Promise<IProjectIntelligence | null> {
