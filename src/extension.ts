@@ -31,8 +31,7 @@ import {
  * development assistant. This class serves as the conductor that coordinates
  * all our intelligent systems - Project Intelligence, Memory, Workflow Engine,
  * and Intelligent Triggers - into a cohesive development environment.
- * 
- * Think of this as the command center that ensures all components work
+ * * Think of this as the command center that ensures all components work
  * together seamlessly to provide contextually appropriate assistance at
  * exactly the right moments. When you interact with any part of our system,
  * this coordination layer ensures that all relevant intelligence contributes
@@ -245,6 +244,10 @@ class ClaudeGeminiAssistant {
             {
                 id: 'claude-assistant.reviewLastExecution',
                 handler: () => this.handleReviewLastExecution()
+            },
+            {
+                id: 'claude-assistant.clearApiKey',
+                handler: () => this.handleClearApiKey()
             }
         ];
         
@@ -522,6 +525,19 @@ class ClaudeGeminiAssistant {
         } catch (error) {
             console.error('Error analyzing project:', error);
             vscode.window.showErrorMessage(`Project analysis failed: ${error}`);
+        }
+    }
+
+    /**
+     * Handles clearing the stored API key from secret storage.
+     */
+    private async handleClearApiKey(): Promise<void> {
+        try {
+            await this.extensionContext.secrets.delete('gemini-assistant.apiKey');
+            vscode.window.showInformationMessage('Gemini API Key has been cleared.');
+        } catch (error) {
+            console.error('Error clearing API key:', error);
+            vscode.window.showErrorMessage('Failed to clear API key.');
         }
     }
     
