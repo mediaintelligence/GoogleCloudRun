@@ -420,7 +420,7 @@ export class ProjectIntelligence {
         const related: string[] = [];
         const fileName = path.basename(uri.fsPath);
         const fileNameWithoutExt = path.parse(fileName).name;
-        const directory = path.dirname(uri.fsPath);
+        const _directory = path.dirname(uri.fsPath);
 
         if (!this.projectStructure) {
             return related;
@@ -504,7 +504,7 @@ export class ProjectIntelligence {
         return [...new Set(dependencies)]; // Remove duplicates
     }
 
-    private async getRecentChanges(workspaceUri: vscode.Uri): Promise<FileChange[]> {
+    private async getRecentChanges(_workspaceUri: vscode.Uri): Promise<FileChange[]> {
         const changes: FileChange[] = [];
         
         // This would ideally integrate with git, but for now we'll use file modification times
@@ -525,7 +525,7 @@ export class ProjectIntelligence {
         return changes;
     }
 
-    private async detectProjectType(workspaceUri: vscode.Uri): Promise<string> {
+    private async detectProjectType(_workspaceUri: vscode.Uri): Promise<string> {
         if (!this.projectStructure) {
             return 'unknown';
         }
@@ -571,7 +571,7 @@ export class ProjectIntelligence {
         return 'generic';
     }
 
-    private async detectFrameworks(workspaceUri: vscode.Uri): Promise<string[]> {
+    private async detectFrameworks(_workspaceUri: vscode.Uri): Promise<string[]> {
         const frameworks: string[] = [];
         
         if (!this.projectStructure) {

@@ -2,8 +2,7 @@ import * as vscode from 'vscode';
 import { 
     ErrorContext, 
     LearnedPattern, 
-    ProjectContext,
-    ExecutionMemory 
+    ProjectContext
 } from '../types/interfaces';
 import { ClaudeCodeInterface } from '../core/claudeCodeInterface';
 import { MemorySystem } from '../core/memorySystem';
@@ -51,10 +50,10 @@ export class ErrorPatternDetector {
     private analysisThrottle: Map<string, number> = new Map();
 
     constructor(
-        private context: vscode.ExtensionContext,
-        private claudeInterface: ClaudeCodeInterface,
-        private memorySystem: MemorySystem,
-        private projectIntelligence: ProjectIntelligence
+        private _context: vscode.ExtensionContext,
+        private _claudeInterface: ClaudeCodeInterface,
+        private _memorySystem: MemorySystem,
+        private _projectIntelligence: ProjectIntelligence
     ) {
         this.diagnosticCollection = vscode.languages.createDiagnosticCollection('claude-error-patterns');
         this.initializePatterns();
@@ -102,7 +101,7 @@ export class ErrorPatternDetector {
         const previousResolutions = this.findPreviousResolutions(diagnostic.message);
         
         // Get project context for better analysis
-        const projectContext = await this.projectIntelligence.getContextForFile(uri);
+        const projectContext = await this._projectIntelligence.getContextForFile(uri);
         
         // Build comprehensive error context
         const errorContext: ErrorContext = {
@@ -143,7 +142,7 @@ export class ErrorPatternDetector {
         error: ErrorContext,
         pattern: ErrorPattern | null,
         previousResolutions: ResolutionHistory[],
-        projectContext: ProjectContext
+        _projectContext: ProjectContext
     ): Promise<ErrorSuggestion[]> {
         const suggestions: ErrorSuggestion[] = [];
 
@@ -176,7 +175,7 @@ export class ErrorPatternDetector {
 
         // Get AI-powered suggestions if no good matches found
         if (suggestions.length === 0 || suggestions.every(s => s.confidence < 0.7)) {
-            const aiSuggestion = await this.getAISuggestion(error, projectContext);
+            const aiSuggestion = await this.getAISuggestion(error, _projectContext);
             if (aiSuggestion) {
                 suggestions.push(aiSuggestion);
             }
@@ -191,7 +190,7 @@ export class ErrorPatternDetector {
      */
     private async getAISuggestion(
         error: ErrorContext,
-        projectContext: ProjectContext
+        _projectContext: ProjectContext
     ): Promise<ErrorSuggestion | null> {
         try {
             const document = await vscode.workspace.openTextDocument(error.file);
@@ -208,8 +207,8 @@ Line ${error.line}: ${errorLine.text}
 Surrounding code:
 ${surroundingCode}
 
-Project type: ${projectContext.projectType}
-Frameworks: ${projectContext.frameworks.join(', ')}
+Project type: ${_projectContext.projectType}
+Frameworks: ${_projectContext.frameworks.join(', ')}
 
 Provide a specific fix for this error. Include:
 1. What's causing the error
@@ -219,8 +218,8 @@ Provide a specific fix for this error. Include:
 Keep the response concise and code-focused.
             `.trim();
 
-            const executionContext = createSimpleExecutionContext(projectContext, prompt);
-            const response = await this.claudeInterface.executeWithContext(prompt, executionContext, vscode.workspace.rootPath || '');
+            const executionContext = createSimpleExecutionContext(_projectContext, prompt);
+            const response = await this._claudeInterface.executeWithContext(prompt, executionContext, vscode.workspace.rootPath || '');
             
             return {
                 type: 'ai-generated',
@@ -326,13 +325,13 @@ Keep the response concise and code-focused.
                 }
             };
 
-            await this.memorySystem.recordPattern(pattern);
+            await this._memorySystem.recordPattern(pattern);
         }
 
         // Record execution memory
-        await this.memorySystem.recordExecution({
+        await this._memorySystem.recordExecution({
             input: `Fix error: ${trackedError.error.message}`,
-            context: await this.projectIntelligence.getContextForFile(
+            context: await this._projectIntelligence.getContextForFile(
                 vscode.Uri.file(trackedError.error.file)
             ),
             result: resolution.successful ? 'Success' : 'Failed',
@@ -504,7 +503,7 @@ Keep the response concise and code-focused.
         return 0.3;
     }
 
-    private updatePatternSuccess(errorMessage: string, suggestion: ErrorSuggestion): void {
+    private updatePatternSuccess(errorMessage: string, _suggestion: ErrorSuggestion): void {
         const pattern = Array.from(this.errorPatterns.values()).find(p => 
             p.regex.test(errorMessage)
         );

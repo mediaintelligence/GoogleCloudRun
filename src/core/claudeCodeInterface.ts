@@ -1,11 +1,9 @@
 // src/core/claudeCodeInterface.ts
 
 import * as vscode from 'vscode';
-import { spawn } from 'child_process';
 import { 
     ClaudeCodeExecution, 
-    ExecutionContext,
-    ProjectIntelligence 
+    ExecutionContext
 } from '../types/interfaces';
 
 /**
@@ -15,7 +13,7 @@ import {
 export class ClaudeCodeInterface {
     private executions: ClaudeCodeExecution[] = [];
     
-    constructor(private context: vscode.ExtensionContext) {}
+    constructor(private _context: vscode.ExtensionContext) {}
     
     async executeWithContext(
         instruction: string,

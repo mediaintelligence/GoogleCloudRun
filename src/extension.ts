@@ -7,7 +7,6 @@ import { ProjectIntelligenceSystem } from './core/projectIntelligenceSystem';
 import { MemorySystem } from './core/memorySystem';
 import { GeminiWorkflowEngine } from './core/geminiWorkflow';
 import { ClaudeCodeInterface } from './core/claudeCodeInterface';
-import { MultiModelOrchestrator } from './core/multiModelOrchestrator';
 
 // Intelligent systems imports
 import { IntelligentTriggers } from './hooks/intelligentTriggers';
@@ -15,7 +14,6 @@ import { MemoryAwareHook } from './hooks/memoryAwareHook';
 
 // UI components imports
 import { WorkflowPanelProvider } from './ui/workflowPanel';
-import { ContextViewer } from './ui/contextViewer';
 import { ProjectContextProvider } from './ui/contextTreeProvider';
 
 // Type imports
@@ -23,7 +21,8 @@ import {
     GeminiWorkflow, 
     ProjectIntelligence, 
     WorkflowPriority,
-    ExecutionContext 
+    ExecutionContext,
+    WorkflowPhase
 } from './types/interfaces';
 
 /**
@@ -43,15 +42,12 @@ class ClaudeGeminiAssistant {
     private memorySystem!: MemorySystem;
     private workflowEngine!: GeminiWorkflowEngine;
     private claudeCodeInterface!: ClaudeCodeInterface;
-    private multiModelOrchestrator!: MultiModelOrchestrator;
-    
     // Intelligent systems
     private intelligentTriggers!: IntelligentTriggers;
     private memoryAwareHook!: MemoryAwareHook;
     
     // UI providers
     private workflowPanelProvider!: WorkflowPanelProvider;
-    private contextViewer!: ContextViewer;
     private contextProvider!: ProjectContextProvider;
     
     // Extension state
@@ -165,11 +161,7 @@ class ClaudeGeminiAssistant {
             this.projectIntelligence
         );
         
-        this.contextViewer = new ContextViewer(
-            this.extensionContext,
-            this.projectIntelligence,
-            this.memorySystem
-        );
+
         
         this.contextProvider = new ProjectContextProvider(
             this.extensionContext,
@@ -500,14 +492,6 @@ class ClaudeGeminiAssistant {
                 
                 if (projectIntel) {
                     // Show analysis results
-                    const message = [
-                        `Project: ${projectIntel.name}`,
-                        `Type: ${projectIntel.projectType}`,
-                        `Architecture: ${projectIntel.architecture.primaryPattern}`,
-                        `Primary Language: ${projectIntel.technologies.primaryLanguage}`,
-                        `Quality Score: ${Math.round(projectIntel.codeQuality.codeComplexity * 10)}/10`
-                    ].join('\n');
-                    
                     vscode.window.showInformationMessage(
                         'Project analysis complete!',
                         'View Details'
@@ -671,7 +655,7 @@ class ClaudeGeminiAssistant {
         return [];
     }
     
-    private generateSuccessCriteria(instruction: string): string[] {
+    private generateSuccessCriteria(_instruction: string): string[] {
         return [
             'Task completed as requested',
             'No new errors introduced',
@@ -743,13 +727,16 @@ class ClaudeGeminiAssistant {
         };
     }
     
-    private async createMockPhase(instruction: string): Promise<any> {
+    private async createMockPhase(instruction: string): Promise<WorkflowPhase> {
         return {
             id: 'mock_phase_' + Date.now(),
             name: 'Direct Execution',
             description: instruction,
             type: 'implementation',
-            status: 'in-progress'
+            status: 'in-progress',
+            estimatedDuration: 5000,
+            reviewCriteria: ['Task completed successfully'],
+            actions: []
         };
     }
     

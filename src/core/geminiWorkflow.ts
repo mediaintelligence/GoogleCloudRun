@@ -7,12 +7,7 @@ import {
     GeminiWorkflow, 
     WorkflowPhase, 
     ProjectIntelligence,
-    WorkflowStatus,
-    PhaseStatus,
-    WorkflowComplexity,
-    WorkflowPriority,
-    PhaseType,
-    PhaseAction
+    WorkflowPriority
 } from '../types/interfaces';
 
 /**
@@ -23,9 +18,9 @@ export class GeminiWorkflowEngine {
     private workflows: Map<string, GeminiWorkflow> = new Map();
     
     constructor(
-        private context: vscode.ExtensionContext,
-        private claudeInterface: ClaudeCodeInterface,
-        private memorySystem: MemorySystem
+        private _context: vscode.ExtensionContext,
+        private _claudeInterface: ClaudeCodeInterface,
+        private _memorySystem: MemorySystem
     ) {}
     
     async startWorkflow(
@@ -59,7 +54,7 @@ export class GeminiWorkflowEngine {
         return workflow;
     }
     
-    async executeNextPhase(workflowId: string, projectIntel: ProjectIntelligence): Promise<boolean> {
+    async executeNextPhase(workflowId: string, _projectIntel: ProjectIntelligence): Promise<boolean> {
         const workflow = this.workflows.get(workflowId);
         if (!workflow) throw new Error('Workflow not found');
         

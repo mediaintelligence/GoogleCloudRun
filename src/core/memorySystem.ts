@@ -1,10 +1,8 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import { 
     ExecutionMemory, 
     LearnedPattern, 
     MemoryItem,
-    ProjectContext,
     ClaudeCodeExecution,
     GeminiWorkflow,
     ProjectIntelligence
@@ -406,20 +404,20 @@ export class MemorySystem implements vscode.TreeDataProvider<MemoryItem> {
     async recordExperience(
         execution: ClaudeCodeExecution, 
         workflow: GeminiWorkflow, 
-        projectIntel: ProjectIntelligence
+        _projectIntel: ProjectIntelligence
     ): Promise<void> {
         // Convert ClaudeCodeExecution to ExecutionMemory
         const memory: ExecutionMemory = {
             id: execution.id,
             input: execution.instruction,
             context: {
-                projectRoot: projectIntel.rootPath,
+                projectRoot: _projectIntel.rootPath,
                 currentFile: execution.workingDirectory,
                 relatedFiles: [],
                 dependencies: [],
                 recentChanges: [],
-                projectType: projectIntel.projectType,
-                frameworks: projectIntel.technologies.frameworks,
+                projectType: _projectIntel.projectType,
+                frameworks: _projectIntel.technologies.frameworks,
                 patterns: []
             },
             result: execution.output,
@@ -433,13 +431,13 @@ export class MemorySystem implements vscode.TreeDataProvider<MemoryItem> {
     
     async getRelevantMemories(
         context: string, 
-        projectIntel: ProjectIntelligence, 
+        _projectIntel: ProjectIntelligence, 
         count: number
     ): Promise<ExecutionMemory[]> {
         // Simple relevance filtering based on context similarity
         const relevantMemories = this.memories.filter(memory => {
             // Check if memory is from the same project
-            if (memory.context.projectRoot !== projectIntel.rootPath) {
+            if (memory.context.projectRoot !== _projectIntel.rootPath) {
                 return false;
             }
             
@@ -462,7 +460,7 @@ export class MemorySystem implements vscode.TreeDataProvider<MemoryItem> {
     
     async getApplicablePatterns(
         context: string, 
-        projectIntel: ProjectIntelligence, 
+        _projectIntel: ProjectIntelligence, 
         count: number
     ): Promise<LearnedPattern[]> {
         // Filter patterns that might be applicable to the current context

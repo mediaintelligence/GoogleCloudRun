@@ -30,9 +30,9 @@ export class BossAgentRouter {
     private routingHistory: Map<string, PerformanceMetrics> = new Map();
     
     constructor(
-        private context: vscode.ExtensionContext,
-        private memorySystem: MemorySystem,
-        private projectIntelligence: ProjectIntelligenceSystem
+        private _context: vscode.ExtensionContext,
+        private _memorySystem: MemorySystem,
+        private _projectIntelligence: ProjectIntelligenceSystem
     ) {
         this.loadPerformanceHistory();
     }
@@ -43,18 +43,18 @@ export class BossAgentRouter {
     async route(request: LLMRequest): Promise<RoutingDecision> {
         const fingerprint = await this.generateFingerprint(request);
         const complexity = this.analyzeComplexity(request, fingerprint);
-        const contextNeeds = await this.analyzeContextNeeds(request);
+        const _contextNeeds = await this.analyzeContextNeeds(request);
         
         // Get routing policy from configuration
-        const routingPolicy = this.getRoutingPolicy();
+        const _routingPolicy = this.getRoutingPolicy();
         
         // Make intelligent routing decision
         const decision = await this.makeRoutingDecision(
             request, 
             fingerprint, 
             complexity, 
-            contextNeeds, 
-            routingPolicy
+            _contextNeeds, 
+            _routingPolicy
         );
         
         console.log(`🧠 Boss Agent routing to ${decision.primaryModel} for: ${request.prompt.slice(0, 50)}...`);
@@ -143,17 +143,17 @@ export class BossAgentRouter {
      * Core routing decision logic based on learned patterns and policies
      */
     private async makeRoutingDecision(
-        request: LLMRequest,
+        _request: LLMRequest,
         fingerprint: RequestFingerprint,
         complexity: TaskComplexity,
-        contextNeeds: any,
-        policy: any
+        _contextNeeds: any,
+        _policy: any
     ): Promise<RoutingDecision> {
         
         const config = vscode.workspace.getConfiguration('gemini-assistant.bossAgent');
         const fallbackChain = config.get<ModelProvider[]>('fallbackChain', ['claude4', 'gpt4o', 'gemini25']);
         const dailyCostLimit = config.get<number>('dailyCostLimit', 100);
-        const currentCost = this.context.globalState.get<number>('dailyCost', 0);
+        const currentCost = this._context.globalState.get<number>('dailyCost', 0);
 
         // Check for cached similar responses first
         const cachedResponse = await this.checkSemanticCache(fingerprint);
@@ -234,8 +234,8 @@ export class BossAgentRouter {
 
         const estimatedTokens = this.estimateTokens(request.prompt);
         const cost = this.estimateCost(model, estimatedTokens);
-        const currentCost = this.context.globalState.get<number>('dailyCost', 0);
-        this.context.globalState.update('dailyCost', currentCost + cost);
+        const currentCost = this._context.globalState.get<number>('dailyCost', 0);
+        this._context.globalState.update('dailyCost', currentCost + cost);
         
         return {
             content: `Response from ${model}: ${request.prompt}`,
@@ -335,7 +335,7 @@ export class BossAgentRouter {
         };
     }
     
-    private async checkSemanticCache(fingerprint: RequestFingerprint): Promise<LLMResponse | null> {
+    private async checkSemanticCache(_fingerprint: RequestFingerprint): Promise<LLMResponse | null> {
         // Check for semantically similar cached responses
         // This would use embeddings to find similar requests
         return null; // Placeholder
@@ -355,20 +355,20 @@ export class BossAgentRouter {
     private async recordFallbackSuccess(
         fallbackModel: ModelProvider, 
         primaryModel: ModelProvider, 
-        request: LLMRequest, 
-        response: LLMResponse
+        _request: LLMRequest, 
+        _response: LLMResponse
     ): Promise<void> {
         console.log(`📊 Fallback success: ${fallbackModel} succeeded where ${primaryModel} failed`);
         // Record this for learning to improve future routing decisions
     }
     
     private loadPerformanceHistory(): void {
-        const stored = this.context.globalState.get('routingHistory', {});
+        const stored = this._context.globalState.get('routingHistory', {});
         this.routingHistory = new Map(Object.entries(stored));
     }
     
     private savePerformanceHistory(): void {
         const obj = Object.fromEntries(this.routingHistory);
-        this.context.globalState.update('routingHistory', obj);
+        this._context.globalState.update('routingHistory', obj);
     }
 }

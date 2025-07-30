@@ -29,8 +29,8 @@ export class ProjectIntelligenceSystem implements IProjectIntelligence {
     dependencies: any[] = [];
     recentActivity: any = {};
     
-    constructor(private context: vscode.ExtensionContext) {
-        this.projectIntelligence = new ProjectIntelligence(context);
+    constructor(private _context: vscode.ExtensionContext) {
+        this.projectIntelligence = new ProjectIntelligence(_context);
         this.initializeFromWorkspace();
     }
     

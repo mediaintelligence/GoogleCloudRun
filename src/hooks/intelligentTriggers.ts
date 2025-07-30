@@ -19,15 +19,15 @@ export class IntelligentTriggers {
     private geminiWorkflow: GeminiWorkflowEngine;
 
     constructor(
-        private context: vscode.ExtensionContext,
-        private workflowEngine: any,
-        private memorySystem: any,
-        private projectIntelligence: any
+        private _context: vscode.ExtensionContext,
+        private _workflowEngine: any,
+        private _memorySystem: any,
+        private _projectIntelligence: any
     ) {
         // Create instances needed for the existing code
-        this.claudeInterface = new ClaudeCodeInterface(context);
+        this.claudeInterface = new ClaudeCodeInterface(_context);
         this.geminiWorkflow = new GeminiWorkflowEngine(
-            context,
+            _context,
             this.claudeInterface,  // ClaudeCodeInterface
             null as any  // MemorySystem placeholder
         );
@@ -76,7 +76,7 @@ export class IntelligentTriggers {
             name: 'Smart Code Completion',
             type: 'completion',
             condition: new CompletionPatternCondition(),
-            action: new SmartCompletionAction(this.claudeInterface, this.projectIntelligence),
+            action: new SmartCompletionAction(this.claudeInterface, this._projectIntelligence),
             priority: 5,
             enabled: true
         });
@@ -211,7 +211,7 @@ export class IntelligentTriggers {
     }
 
     private async buildTriggerContext(editor: vscode.TextEditor): Promise<TriggerContext> {
-        const projectContext = await this.projectIntelligence.getContextForFile(editor.document.uri);
+        const projectContext = await this._projectIntelligence.getContextForFile(editor.document.uri);
         const diagnostics = vscode.languages.getDiagnostics(editor.document.uri);
 
         return {
@@ -292,7 +292,7 @@ export class IntelligentTriggers {
         }
     }
     
-    private checkDiagnosticTriggers(uri: vscode.Uri, diagnostics: vscode.Diagnostic[]): void {
+    private checkDiagnosticTriggers(_uri: vscode.Uri, diagnostics: vscode.Diagnostic[]): void {
         // Implementation for checking diagnostic-based triggers
         const errors = diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error);
         if (errors.length > 3) {
@@ -305,9 +305,9 @@ export class IntelligentTriggers {
         }
     }
     
-    private checkNewFileTriggers(uri: vscode.Uri): void {
+    private checkNewFileTriggers(_uri: vscode.Uri): void {
         // Implementation for new file triggers
-        const fileName = vscode.workspace.asRelativePath(uri);
+        const fileName = vscode.workspace.asRelativePath(_uri);
         if (fileName.endsWith('.test.ts') || fileName.endsWith('.spec.ts')) {
             // New test file created
             vscode.window.showInformationMessage(
@@ -322,19 +322,19 @@ export class IntelligentTriggers {
         }
     }
     
-    private checkModificationTriggers(uri: vscode.Uri): void {
+    private checkModificationTriggers(_uri: vscode.Uri): void {
         // Implementation for file modification triggers
         // Could analyze the nature of changes and suggest improvements
     }
     
-    private checkDeletionTriggers(uri: vscode.Uri): void {
+    private checkDeletionTriggers(_uri: vscode.Uri): void {
         // Implementation for file deletion triggers
         // Could check for orphaned imports or references
     }
     
     private async getProjectContext(): Promise<any> {
         // Get project context from project intelligence
-        const context = await this.projectIntelligence.getContextForFile(
+        const context = await this._projectIntelligence.getContextForFile(
             vscode.window.activeTextEditor?.document.uri || vscode.Uri.file('')
         );
         return context;
@@ -579,8 +579,8 @@ class SmartCompletionAction implements TriggerAction {
 
     async execute(context: TriggerContext): Promise<void> {
         const line = context.document.lineAt(context.position.line);
-        const prefix = line.text.substring(0, context.position.character);
-        const suffix = line.text.substring(context.position.character);
+        const _prefix = line.text.substring(0, context.position.character);
+        const _suffix = line.text.substring(context.position.character);
 
         // Get surrounding code
         const before = context.document.getText(
@@ -678,7 +678,7 @@ class DocumentationAction implements TriggerAction {
 
     async execute(context: TriggerContext): Promise<void> {
         const line = context.position.line;
-        const functionLine = context.document.lineAt(line).text;
+        const _functionLine = context.document.lineAt(line).text;
         
         // Get full function/class definition
         let endLine = line;
@@ -735,7 +735,7 @@ Include parameter descriptions, return value, and examples if relevant.
 }
 
 class WorkflowSuggestionAction implements TriggerAction {
-    constructor(private geminiWorkflow: GeminiWorkflowEngine) {}
+    constructor(private _geminiWorkflow: GeminiWorkflowEngine) {}
 
     async execute(context: TriggerContext): Promise<void> {
         // Analyze recent changes to understand task

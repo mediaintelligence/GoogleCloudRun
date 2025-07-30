@@ -38,11 +38,11 @@ export class MultiModelOrchestrator {
     private isInitialized: boolean = false;
     
     constructor(
-        private context: vscode.ExtensionContext,
-        private memorySystem: MemorySystem,
-        private projectIntelligence: ProjectIntelligenceSystem
+        private _context: vscode.ExtensionContext,
+        private _memorySystem: MemorySystem,
+        private _projectIntelligence: ProjectIntelligenceSystem
     ) {
-        this.bossAgent = new BossAgentRouter(context, memorySystem, projectIntelligence);
+        this.bossAgent = new BossAgentRouter(_context, _memorySystem, _projectIntelligence);
     }
     
     /**
@@ -254,13 +254,13 @@ export class MultiModelOrchestrator {
         
         // Add project context if available
         if (context?.includeProjectContext) {
-            const projectContext = await this.projectIntelligence.getProjectContext();
+            const projectContext = await this._projectIntelligence.getProjectContext();
             request.context = [JSON.stringify(projectContext)];
         }
         
         // Add relevant memories
-        if (this.memorySystem) {
-            const relevantMemories = await this.memorySystem.getRelevantMemories(prompt, this.projectIntelligence as any, 5);
+        if (this._memorySystem) {
+            const relevantMemories = await this._memorySystem.getRelevantMemories(prompt, this._projectIntelligence as any, 5);
             if (relevantMemories.length > 0) {
                 request.context = request.context || [];
                 request.context.push(`Relevant past experiences:\n${relevantMemories.map((m: any) => m.content).join('\n')}`);
@@ -308,16 +308,16 @@ export class MultiModelOrchestrator {
     }
     
     private async recordInteraction(
-        request: LLMRequest,
-        response: LLMResponse,
-        decision: RoutingDecision
+        _request: LLMRequest,
+        _response: LLMResponse,
+        _decision: RoutingDecision
     ): Promise<void> {
         // Record this interaction for learning and improvement
-        if (this.memorySystem) {
-            await this.memorySystem.recordExecution({
-                input: request.prompt.slice(0, 200),
-                result: response.content.slice(0, 200),
-                context: await this.projectIntelligence.getProjectContext() as any,
+        if (this._memorySystem) {
+            await this._memorySystem.recordExecution({
+                input: _request.prompt.slice(0, 200),
+                result: _response.content.slice(0, 200),
+                context: await this._projectIntelligence.getProjectContext() as any,
                 timestamp: new Date()
             });
         }
