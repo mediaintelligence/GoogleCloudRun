@@ -165,10 +165,6 @@ export class ProjectIntelligenceSystem implements IProjectIntelligence {
         return this.projectIntelligence;
     }
     
-    async getContextForFile(uri: vscode.Uri): Promise<ProjectContext> {
-        return this.projectIntelligence.getContextForFile(uri);
-    }
-    
     dispose(): void {
         // Cleanup if needed
         this.cachedIntelligence = null;

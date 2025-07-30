@@ -6,8 +6,8 @@ import {
     TriggerAction 
 } from '../types/interfaces';
 import { ProjectIntelligence } from '../core/projectIntelligence';
-import { ClaudeCodeInterface } from '../claude/claudeCodeInterface';
-import { GeminiWorkflow } from '../gemini/geminiWorkflow';
+import { ClaudeCodeInterface } from '../core/claudeCodeInterface';
+import { GeminiWorkflowEngine } from '../core/geminiWorkflow';
 
 export class IntelligentTriggers {
     private triggers: Map<string, Trigger> = new Map();
@@ -16,7 +16,7 @@ export class IntelligentTriggers {
     private recentEdits: vscode.TextDocumentChangeEvent[] = [];
     private editDebounceTimer: NodeJS.Timeout | null = null;
     private claudeInterface: ClaudeCodeInterface;
-    private geminiWorkflow: GeminiWorkflow;
+    private geminiWorkflow: GeminiWorkflowEngine;
 
     constructor(
         private context: vscode.ExtensionContext,
@@ -26,11 +26,10 @@ export class IntelligentTriggers {
     ) {
         // Create instances needed for the existing code
         this.claudeInterface = new ClaudeCodeInterface(context);
-        this.geminiWorkflow = new GeminiWorkflow(
+        this.geminiWorkflow = new GeminiWorkflowEngine(
             context,
-            null as any,  // Placeholder for missing dependencies
-            null as any,
-            null as any
+            this.claudeInterface,  // ClaudeCodeInterface
+            null as any  // MemorySystem placeholder
         );
         this.initializeDefaultTriggers();
         this.setupEventListeners();
@@ -450,6 +449,36 @@ class ComplexTaskCondition implements TriggerCondition {
     }
 }
 
+/**
+ * Utility function to create a simplified ExecutionContext
+ */
+function createSimpleExecutionContext(projectContext: any, instruction: string): any {
+    return {
+        projectIntelligence: projectContext,
+        currentWorkflow: {
+            id: 'temp_' + Date.now(),
+            title: 'Quick Task',
+            description: instruction,
+            status: 'executing'
+        },
+        currentPhase: {
+            id: 'temp_phase',
+            name: 'Analysis',
+            description: instruction,
+            type: 'analysis'
+        },
+        relevantMemories: [],
+        similarExecutions: [],
+        learnedPatterns: [],
+        activeFiles: vscode.window.activeTextEditor ? [vscode.window.activeTextEditor.document.uri.fsPath] : [],
+        recentChanges: [],
+        currentErrors: [],
+        suggestedApproaches: [],
+        cautionAreas: [],
+        successCriteria: ['Complete the requested task']
+    };
+}
+
 // Action implementations
 class ErrorSuggestionAction implements TriggerAction {
     constructor(private claudeInterface: ClaudeCodeInterface) {}
@@ -484,7 +513,8 @@ Suggest a fix for this error.
         `.trim();
 
         try {
-            const suggestion = await this.claudeInterface.executeWithContext(prompt, context.projectContext);
+            const executionContext = createSimpleExecutionContext(context.projectContext, prompt);
+            const suggestion = await this.claudeInterface.executeWithContext(prompt, executionContext, vscode.workspace.rootPath || '');
             
             // Show suggestion as code action
             const action = new vscode.CodeAction(
@@ -499,7 +529,7 @@ Suggest a fix for this error.
             };
 
             // Store in hover provider
-            this.showSuggestionHover(nearestError.range, suggestion);
+            this.showSuggestionHover(nearestError.range, suggestion.output);
         } catch (error) {
             console.error('Failed to get error suggestion:', error);
         }
@@ -586,12 +616,13 @@ Provide only the completion text, no explanation.
         `.trim();
 
         try {
-            const completion = await this.claudeInterface.executeWithContext(prompt, context.projectContext);
+            const executionContext = createSimpleExecutionContext(context.projectContext, prompt);
+            const completion = await this.claudeInterface.executeWithContext(prompt, executionContext, vscode.workspace.rootPath || '');
             
             // Insert completion as snippet
             const editor = vscode.window.activeTextEditor;
             if (editor && editor.document === context.document) {
-                editor.insertSnippet(new vscode.SnippetString(completion), context.position);
+                editor.insertSnippet(new vscode.SnippetString(completion.output), context.position);
             }
         } catch (error) {
             console.error('Failed to get completion:', error);
@@ -621,7 +652,8 @@ Suggest specific refactoring improvements. Be concise.
         `.trim();
 
         try {
-            const suggestions = await this.claudeInterface.executeWithContext(prompt, context.projectContext);
+            const executionContext = createSimpleExecutionContext(context.projectContext, prompt);
+            const suggestions = await this.claudeInterface.executeWithContext(prompt, executionContext, vscode.workspace.rootPath || '');
             
             // Show as information message with action
             vscode.window.showInformationMessage(
@@ -631,7 +663,7 @@ Suggest specific refactoring improvements. Be concise.
                 if (choice === 'View Suggestions') {
                     // Show in output channel
                     const channel = vscode.window.createOutputChannel('Claude Refactoring Suggestions');
-                    channel.appendLine(suggestions);
+                    channel.appendLine(suggestions.output);
                     channel.show();
                 }
             });
@@ -684,7 +716,8 @@ Include parameter descriptions, return value, and examples if relevant.
         `.trim();
 
         try {
-            const documentation = await this.claudeInterface.executeWithContext(prompt, context.projectContext);
+            const executionContext = createSimpleExecutionContext(context.projectContext, prompt);
+            const documentation = await this.claudeInterface.executeWithContext(prompt, executionContext, vscode.workspace.rootPath || '');
             
             // Insert documentation above the definition
             const editor = vscode.window.activeTextEditor;
@@ -702,7 +735,7 @@ Include parameter descriptions, return value, and examples if relevant.
 }
 
 class WorkflowSuggestionAction implements TriggerAction {
-    constructor(private geminiWorkflow: GeminiWorkflow) {}
+    constructor(private geminiWorkflow: GeminiWorkflowEngine) {}
 
     async execute(context: TriggerContext): Promise<void> {
         // Analyze recent changes to understand task

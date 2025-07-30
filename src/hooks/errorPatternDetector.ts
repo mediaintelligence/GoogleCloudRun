@@ -5,9 +5,39 @@ import {
     ProjectContext,
     ExecutionMemory 
 } from '../types/interfaces';
-import { ClaudeCodeInterface } from '../claude/claudeCodeInterface';
+import { ClaudeCodeInterface } from '../core/claudeCodeInterface';
 import { MemorySystem } from '../core/memorySystem';
 import { ProjectIntelligence } from '../core/projectIntelligence';
+
+/**
+ * Utility function to create a simplified ExecutionContext
+ */
+function createSimpleExecutionContext(projectContext: any, instruction: string): any {
+    return {
+        projectIntelligence: projectContext,
+        currentWorkflow: {
+            id: 'temp_' + Date.now(),
+            title: 'Error Fix',
+            description: instruction,
+            status: 'executing'
+        },
+        currentPhase: {
+            id: 'temp_phase',
+            name: 'Error Analysis',
+            description: instruction,
+            type: 'analysis'
+        },
+        relevantMemories: [],
+        similarExecutions: [],
+        learnedPatterns: [],
+        activeFiles: [],
+        recentChanges: [],
+        currentErrors: [],
+        suggestedApproaches: [],
+        cautionAreas: [],
+        successCriteria: ['Fix the error']
+    };
+}
 
 /**
  * Sophisticated error pattern detection and analysis system.
@@ -189,12 +219,13 @@ Provide a specific fix for this error. Include:
 Keep the response concise and code-focused.
             `.trim();
 
-            const response = await this.claudeInterface.executeWithContext(prompt, projectContext);
+            const executionContext = createSimpleExecutionContext(projectContext, prompt);
+            const response = await this.claudeInterface.executeWithContext(prompt, executionContext, vscode.workspace.rootPath || '');
             
             return {
                 type: 'ai-generated',
                 description: 'AI-suggested fix',
-                code: response,
+                code: response.output,
                 confidence: 0.8,
                 source: 'claude-analysis'
             };
