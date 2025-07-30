@@ -1,15 +1,13 @@
 import * as vscode from 'vscode';
-import { ProjectContext, FileInfo, CodePattern, FileChange } from '../types/interfaces';
-import { ProjectIntelligence } from '../core/projectIntelligence';
+import { ProjectContext, CodePattern } from '../types/interfaces';
 
 export class ContextViewer implements vscode.WebviewViewProvider {
     private _view?: vscode.WebviewView;
-    private _currentContext?: ProjectContext;
 
     constructor(
-        private readonly context: vscode.ExtensionContext,
-        private readonly projectIntelligence: any,
-        private readonly memorySystem: any
+        private readonly _context: vscode.ExtensionContext,
+        private readonly _projectIntelligence: any,
+        private readonly _memorySystem: any
     ) {}
 
     public async show(): Promise<void> {
@@ -39,8 +37,8 @@ export class ContextViewer implements vscode.WebviewViewProvider {
                 return;
             }
 
-            const context = await this.projectIntelligence.getContextForFile(targetUri);
-            this._currentContext = context;
+            const context = await this._projectIntelligence.getContextForFile(targetUri);
+            // this._currentContext = context; // Removed unused variable
 
             if (this._view) {
                 this._view.webview.postMessage({
@@ -55,14 +53,14 @@ export class ContextViewer implements vscode.WebviewViewProvider {
 
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
-        context: vscode.WebviewViewResolveContext,
+        _context: vscode.WebviewViewResolveContext,
         _token: vscode.CancellationToken
     ): void {
         this._view = webviewView;
 
         webviewView.webview.options = {
             enableScripts: true,
-            localResourceRoots: [this.context.extensionUri]
+            localResourceRoots: [this._context.extensionUri]
         };
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);

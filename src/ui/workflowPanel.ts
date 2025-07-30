@@ -27,7 +27,7 @@ export class WorkflowPanelProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'claude-assistant.workflow';
     
     private extensionContext: vscode.ExtensionContext;
-    private workflowEngine: GeminiWorkflowEngine;
+    private _workflowEngine: GeminiWorkflowEngine;
     private projectIntelligence: ProjectIntelligenceSystem;
     private webviewView?: vscode.WebviewView;
     
@@ -41,7 +41,7 @@ export class WorkflowPanelProvider implements vscode.WebviewViewProvider {
         projectIntelligence: ProjectIntelligenceSystem
     ) {
         this.extensionContext = extensionContext;
-        this.workflowEngine = workflowEngine;
+        this._workflowEngine = workflowEngine;
         this.projectIntelligence = projectIntelligence;
     }
     
@@ -51,8 +51,8 @@ export class WorkflowPanelProvider implements vscode.WebviewViewProvider {
      */
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
-        context: vscode.WebviewViewResolveContext,
-        token: vscode.CancellationToken
+        _context: vscode.WebviewViewResolveContext,
+        _token: vscode.CancellationToken
     ): void {
         this.webviewView = webviewView;
         
@@ -152,7 +152,7 @@ export class WorkflowPanelProvider implements vscode.WebviewViewProvider {
      * This method creates a sophisticated, interactive UI that makes
      * complex workflow management accessible and intuitive.
      */
-    private async buildWorkflowPanelHTML(projectIntel: ProjectIntelligence | null): Promise<string> {
+    private async buildWorkflowPanelHTML(_projectIntel: ProjectIntelligence | null): Promise<string> {
         const styles = this.buildCSS();
         const scripts = this.buildJavaScript();
         
@@ -160,9 +160,9 @@ export class WorkflowPanelProvider implements vscode.WebviewViewProvider {
         let mainContent: string;
         
         if (this.activeWorkflow) {
-            mainContent = this.buildActiveWorkflowContent(this.activeWorkflow, projectIntel);
+            mainContent = this.buildActiveWorkflowContent(this.activeWorkflow, _projectIntel);
         } else {
-            mainContent = this.buildWelcomeContent(projectIntel);
+            mainContent = this.buildWelcomeContent(_projectIntel);
         }
         
         return `
@@ -189,7 +189,7 @@ export class WorkflowPanelProvider implements vscode.WebviewViewProvider {
      * Builds the content for when there's an active workflow.
      * This shows detailed progress, phase information, and control options.
      */
-    private buildActiveWorkflowContent(workflow: GeminiWorkflow, projectIntel: ProjectIntelligence | null): string {
+    private buildActiveWorkflowContent(workflow: GeminiWorkflow, _projectIntel: ProjectIntelligence | null): string {
         const progressPercentage = this.calculateWorkflowProgress(workflow);
         const currentPhase = workflow.phases[workflow.currentPhaseIndex];
         const statusColor = this.getStatusColor(workflow.status);

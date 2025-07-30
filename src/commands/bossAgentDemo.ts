@@ -97,7 +97,7 @@ export class BossAgentDemo {
         if (!result) return;
         
         // Simulate the routing decision without actually executing
-        const mockRequest = {
+        const _mockRequest = {
             prompt: result,
             maxTokens: 4096,
             temperature: 0.7
@@ -314,7 +314,7 @@ export class BossAgentDemo {
         `;
     }
     
-    private getErrorHTML(scenario: any, error: any): string {
+    private getErrorHTML(_scenario: any, error: any): string {
         return `
         <!DOCTYPE html>
         <html>

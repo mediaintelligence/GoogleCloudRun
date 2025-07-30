@@ -26,9 +26,9 @@ export class ProgressMonitor {
     private updateInterval: NodeJS.Timeout | null = null;
 
     constructor(
-        private context: vscode.ExtensionContext,
-        private memorySystem: MemorySystem,
-        private projectIntelligence: ProjectIntelligence
+        private _context: vscode.ExtensionContext,
+        private _memorySystem: MemorySystem,
+        private _projectIntelligence: ProjectIntelligence
     ) {
         this.sessionStartTime = new Date();
         this.statusBarItem = vscode.window.createStatusBarItem(
@@ -161,7 +161,7 @@ export class ProgressMonitor {
     /**
      * Updates workflow phase progress
      */
-    updatePhaseProgress(phase: WorkflowPhase, status: PhaseStatus): void {
+    updatePhaseProgress(phase: WorkflowPhase, _status: PhaseStatus): void {
         // This would integrate with the workflow system
         const progress = this.calculatePhaseProgress(phase);
         this.updateStatusBar(progress);
@@ -376,9 +376,9 @@ export class ProgressMonitor {
     /**
      * Calculates knowledge sharing metric
      */
-    private calculateKnowledgeSharing(range: DateRange): number {
+    private calculateKnowledgeSharing(_range: DateRange): number {
         // Based on documentation visits and search patterns
-        const docVisits = this.documentationVisited.filter(visit => {
+        const docVisits = this.documentationVisited.filter(_visit => {
             // Would need timestamps for accurate filtering
             return true; // Placeholder
         }).length;
@@ -466,27 +466,27 @@ export class ProgressMonitor {
     /**
      * Generates personalized recommendations
      */
-    private async generateRecommendations(summary: ActivitySummary): Promise<string[]> {
+    private async generateRecommendations(_summary: ActivitySummary): Promise<string[]> {
         const recommendations: string[] = [];
 
         // Time management recommendations
-        if (summary.focusTimePercentage < 50) {
+        if (_summary.focusTimePercentage < 50) {
             recommendations.push('Try the Pomodoro Technique: 25 minutes of focused work followed by 5-minute breaks');
         }
 
         // Error handling recommendations
-        const errorScore = this.calculateErrorResolutionScore(summary.errorsEncountered);
+        const errorScore = this.calculateErrorResolutionScore(_summary.errorsEncountered);
         if (errorScore < 0.6) {
             recommendations.push('Use Claude Assistant\'s error pattern detection for faster resolution');
         }
 
         // Context switching recommendations
-        if (summary.contextSwitchingFrequency > 8) {
+        if (_summary.contextSwitchingFrequency > 8) {
             recommendations.push('Group related file changes together to reduce context switching');
         }
 
         // Deep work recommendations
-        if (summary.deepWorkSessions < 2) {
+        if (_summary.deepWorkSessions < 2) {
             recommendations.push('Block out at least 2 hours daily for uninterrupted coding');
         }
 
@@ -496,7 +496,7 @@ export class ProgressMonitor {
     /**
      * Analyzes productivity trends
      */
-    private analyzeTrends(summary: ActivitySummary): ProductivityTrend[] {
+    private analyzeTrends(_summary: ActivitySummary): ProductivityTrend[] {
         // This would compare with historical data
         // For now, return placeholder trends
         return [
@@ -558,7 +558,7 @@ export class ProgressMonitor {
     /**
      * Calculates phase progress
      */
-    private calculatePhaseProgress(phase: WorkflowPhase): number {
+    private calculatePhaseProgress(_phase: WorkflowPhase): number {
         // This would integrate with the workflow system
         return 50; // Placeholder
     }
@@ -566,7 +566,7 @@ export class ProgressMonitor {
     /**
      * Gets recent searches within time range
      */
-    private getRecentSearches(range: DateRange): string[] {
+    private getRecentSearches(_range: DateRange): string[] {
         // Would need timestamps on searches for accurate filtering
         return this.searchHistory.slice(-20);
     }
@@ -574,7 +574,7 @@ export class ProgressMonitor {
     /**
      * Gets recent documentation visits within time range
      */
-    private getRecentDocumentation(range: DateRange): string[] {
+    private getRecentDocumentation(_range: DateRange): string[] {
         // Would need timestamps on visits for accurate filtering
         return this.documentationVisited.slice(-20);
     }
@@ -615,11 +615,11 @@ export class ProgressMonitor {
     private async loadPreviousSession(): Promise<void> {
         try {
             const sessionFile = vscode.Uri.joinPath(
-                this.context.globalStorageUri,
+                this._context.globalStorageUri,
                 'progress-session.json'
             );
             const data = await vscode.workspace.fs.readFile(sessionFile);
-            const session = JSON.parse(data.toString());
+            const _session = JSON.parse(data.toString());
             
             // Restore relevant data
             // Implementation would deserialize the saved state
@@ -643,7 +643,7 @@ export class ProgressMonitor {
         };
 
         const sessionFile = vscode.Uri.joinPath(
-            this.context.globalStorageUri,
+            this._context.globalStorageUri,
             'progress-session.json'
         );
 

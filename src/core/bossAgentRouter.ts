@@ -1,8 +1,6 @@
 // src/core/bossAgentRouter.ts
 
 import * as vscode from 'vscode';
-import { MemorySystem } from './memorySystem';
-import { ProjectIntelligenceSystem } from './projectIntelligenceSystem';
 import { 
     LLMRequest, 
     LLMResponse, 
@@ -30,9 +28,7 @@ export class BossAgentRouter {
     private routingHistory: Map<string, PerformanceMetrics> = new Map();
     
     constructor(
-        private _context: vscode.ExtensionContext,
-        private _memorySystem: MemorySystem,
-        private _projectIntelligence: ProjectIntelligenceSystem
+        private _context: vscode.ExtensionContext
     ) {
         this.loadPerformanceHistory();
     }
@@ -115,7 +111,7 @@ export class BossAgentRouter {
     /**
      * Analyze the complexity of the incoming request
      */
-    private analyzeComplexity(request: LLMRequest, fingerprint: RequestFingerprint): TaskComplexity {
+    private analyzeComplexity(_request: LLMRequest, fingerprint: RequestFingerprint): TaskComplexity {
         let complexityScore = 0;
         
         // Token count factor

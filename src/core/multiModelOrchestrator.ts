@@ -42,7 +42,7 @@ export class MultiModelOrchestrator {
         private _memorySystem: MemorySystem,
         private _projectIntelligence: ProjectIntelligenceSystem
     ) {
-        this.bossAgent = new BossAgentRouter(_context, _memorySystem, _projectIntelligence);
+        this.bossAgent = new BossAgentRouter(_context);
     }
     
     /**

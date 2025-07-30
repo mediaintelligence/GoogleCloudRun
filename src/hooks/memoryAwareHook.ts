@@ -13,9 +13,9 @@ export class MemoryAwareHook {
     private enabled: boolean = true;
 
     constructor(
-        private context: vscode.ExtensionContext,
-        private memorySystem: MemorySystem,
-        private projectIntelligence: ProjectIntelligence
+        private _context: vscode.ExtensionContext,
+        private _memorySystem: MemorySystem,
+        private _projectIntelligence: ProjectIntelligence
     ) {
         this.setupHooks();
     }
@@ -109,7 +109,7 @@ export class MemoryAwareHook {
         this.disposables.push(
             vscode.commands.registerCommand('claude-assistant.enhancedStartWorkflow',
                 async (goal: string) => {
-                    const baseContext = await this.projectIntelligence.getContextForFile(
+                    const baseContext = await this._projectIntelligence.getContextForFile(
                         vscode.window.activeTextEditor?.document.uri || vscode.workspace.workspaceFolders?.[0]?.uri!
                     );
                     
@@ -125,13 +125,13 @@ export class MemoryAwareHook {
         );
     }
 
-    private async findRelevantMemories(input: string, context: ProjectContext): Promise<ExecutionMemory[]> {
+    private async findRelevantMemories(input: string, _context: ProjectContext): Promise<ExecutionMemory[]> {
         const keywords = this.extractKeywords(input);
         let relevantMemories: ExecutionMemory[] = [];
 
         // Search by keywords
         for (const keyword of keywords) {
-            const memories = await this.memorySystem.searchMemories(keyword);
+            const memories = await this._memorySystem.searchMemories(keyword);
             relevantMemories = relevantMemories.concat(memories);
         }
 
@@ -143,7 +143,7 @@ export class MemoryAwareHook {
         // Score memories by relevance
         const scoredMemories = uniqueMemories.map(memory => ({
             memory,
-            score: this.calculateMemoryRelevance(memory, input, context)
+            score: this.calculateMemoryRelevance(memory, input, _context)
         }));
 
         return scoredMemories
@@ -154,10 +154,10 @@ export class MemoryAwareHook {
 
     private async findRelevantPatterns(
         input: string, 
-        context: ProjectContext, 
+        _context: ProjectContext, 
         taskType: string
     ): Promise<LearnedPattern[]> {
-        const patterns = await this.memorySystem.getLearnedPatterns();
+        const patterns = await this._memorySystem.getLearnedPatterns();
         const keywords = this.extractKeywords(input);
 
         return patterns.filter(pattern => {
@@ -177,7 +177,7 @@ export class MemoryAwareHook {
     }
 
     private async generateContextualInsights(
-        input: string,
+        _input: string,
         memories: ExecutionMemory[],
         patterns: LearnedPattern[],
         taskType: string
