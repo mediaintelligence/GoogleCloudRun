@@ -15,13 +15,11 @@ import {
 
 /**
  * The Boss Agent Router - Intelligent Multi-Model Orchestration
- * 
- * This is the heart of our multi-model AI platform. The Boss Agent analyzes
+ * * This is the heart of our multi-model AI platform. The Boss Agent analyzes
  * incoming requests and intelligently routes them to the optimal AI model
  * based on task complexity, context requirements, cost considerations, and
  * learned performance patterns.
- * 
- * Key Features:
+ * * Key Features:
  * - Intelligent model selection based on request analysis
  * - Fallback cascading for reliability
  * - Performance learning and optimization
@@ -30,9 +28,6 @@ import {
  */
 export class BossAgentRouter {
     private routingHistory: Map<string, PerformanceMetrics> = new Map();
-    private fallbackChain: ModelProvider[] = ['claude4', 'gpt4o', 'gemini25', 'grok4'];
-    private costBudget: number = 100; // Daily budget in credits
-    private currentCost: number = 0;
     
     constructor(
         private context: vscode.ExtensionContext,
@@ -155,6 +150,11 @@ export class BossAgentRouter {
         policy: any
     ): Promise<RoutingDecision> {
         
+        const config = vscode.workspace.getConfiguration('gemini-assistant.bossAgent');
+        const fallbackChain = config.get<ModelProvider[]>('fallbackChain', ['claude4', 'gpt4o', 'gemini25']);
+        const dailyCostLimit = config.get<number>('dailyCostLimit', 100);
+        const currentCost = this.context.globalState.get<number>('dailyCost', 0);
+
         // Check for cached similar responses first
         const cachedResponse = await this.checkSemanticCache(fingerprint);
         if (cachedResponse) {
@@ -172,7 +172,7 @@ export class BossAgentRouter {
         if (fingerprint.hasVision) {
             return {
                 primaryModel: 'gemini25',
-                fallbackModels: ['gpt4o'],
+                fallbackModels: fallbackChain.filter(m => m !== 'gemini25'),
                 reasoning: 'Visual content detected - Gemini excels at vision tasks',
                 confidence: 0.9,
                 estimatedCost: this.estimateCost('gemini25', fingerprint.estimatedTokens)
@@ -183,7 +183,7 @@ export class BossAgentRouter {
         if (fingerprint.requiresTools) {
             return {
                 primaryModel: 'gpt4o',
-                fallbackModels: ['claude4'],
+                fallbackModels: fallbackChain.filter(m => m !== 'gpt4o'),
                 reasoning: 'Function calling required - GPT-4o has reliable tool execution',
                 confidence: 0.85,
                 estimatedCost: this.estimateCost('gpt4o', fingerprint.estimatedTokens)
@@ -194,7 +194,7 @@ export class BossAgentRouter {
         if (complexity === 'high' || fingerprint.taskType === 'analysis') {
             return {
                 primaryModel: 'claude4',
-                fallbackModels: ['gpt4o', 'gemini25'],
+                fallbackModels: fallbackChain.filter(m => m !== 'claude4'),
                 reasoning: 'Complex reasoning task - Claude 4 excels at deep analysis',
                 confidence: 0.88,
                 estimatedCost: this.estimateCost('claude4', fingerprint.estimatedTokens)
@@ -202,10 +202,10 @@ export class BossAgentRouter {
         }
         
         // Cost optimization for simple tasks
-        if (complexity === 'low' && this.currentCost > this.costBudget * 0.8) {
+        if (complexity === 'low' && currentCost > dailyCostLimit * 0.8) {
             return {
                 primaryModel: 'gemini25',
-                fallbackModels: ['gpt4o'],
+                fallbackModels: fallbackChain.filter(m => m !== 'gemini25'),
                 reasoning: 'Cost optimization - using efficient model for simple task',
                 confidence: 0.75,
                 estimatedCost: this.estimateCost('gemini25', fingerprint.estimatedTokens)
@@ -215,7 +215,7 @@ export class BossAgentRouter {
         // Default to Claude for balanced performance
         return {
             primaryModel: 'claude4',
-            fallbackModels: ['gpt4o', 'gemini25'],
+            fallbackModels: fallbackChain.filter(m => m !== 'claude4'),
             reasoning: 'Default routing - Claude provides balanced performance',
             confidence: 0.8,
             estimatedCost: this.estimateCost('claude4', fingerprint.estimatedTokens)
@@ -231,12 +231,17 @@ export class BossAgentRouter {
         
         // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const estimatedTokens = this.estimateTokens(request.prompt);
+        const cost = this.estimateCost(model, estimatedTokens);
+        const currentCost = this.context.globalState.get<number>('dailyCost', 0);
+        this.context.globalState.update('dailyCost', currentCost + cost);
         
         return {
             content: `Response from ${model}: ${request.prompt}`,
             model: model,
-            tokens: this.estimateTokens(request.prompt),
-            cost: this.estimateCost(model, this.estimateTokens(request.prompt)),
+            tokens: estimatedTokens,
+            cost: cost,
             latency: 1000,
             confidence: 0.85
         };
@@ -325,7 +330,7 @@ export class BossAgentRouter {
         // Load routing policy from configuration
         return {
             preferredModel: vscode.workspace.getConfiguration('gemini-assistant').get('preferredModel', 'claude4'),
-            costLimit: vscode.workspace.getConfiguration('gemini-assistant').get('dailyCostLimit', 100),
+            costLimit: vscode.workspace.getConfiguration('gemini-assistant.bossAgent').get('dailyCostLimit', 100),
             qualityThreshold: vscode.workspace.getConfiguration('gemini-assistant').get('qualityThreshold', 0.8)
         };
     }
