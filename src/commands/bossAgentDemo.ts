@@ -97,11 +97,11 @@ export class BossAgentDemo {
         if (!result) return;
         
         // Simulate the routing decision without actually executing
-        const _mockRequest = {
-            prompt: result,
-            maxTokens: 4096,
-            temperature: 0.7
-        };
+        // const _mockRequest = {
+        //     prompt: result,
+        //     maxTokens: 4096,
+        //     temperature: 0.7
+        // };
         
         // This would call the Boss Agent router to get decision
         const routingInfo = await this.getRoutingDecision(result);

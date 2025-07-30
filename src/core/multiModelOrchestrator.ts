@@ -38,11 +38,10 @@ export class MultiModelOrchestrator {
     private isInitialized: boolean = false;
     
     constructor(
-        private _context: vscode.ExtensionContext,
         private _memorySystem: MemorySystem,
         private _projectIntelligence: ProjectIntelligenceSystem
     ) {
-        this.bossAgent = new BossAgentRouter(_context);
+        this.bossAgent = new BossAgentRouter();
     }
     
     /**

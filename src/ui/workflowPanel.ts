@@ -1,7 +1,7 @@
 // src/ui/workflowPanel.ts
 
 import * as vscode from 'vscode';
-import { GeminiWorkflowEngine } from '../core/geminiWorkflow';
+// import { GeminiWorkflowEngine } from '../core/geminiWorkflow';
 import { ProjectIntelligenceSystem } from '../core/projectIntelligenceSystem';
 import { 
     GeminiWorkflow, 
@@ -27,7 +27,7 @@ export class WorkflowPanelProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'claude-assistant.workflow';
     
     private extensionContext: vscode.ExtensionContext;
-    private _workflowEngine: GeminiWorkflowEngine;
+    // private _workflowEngine: GeminiWorkflowEngine;
     private projectIntelligence: ProjectIntelligenceSystem;
     private webviewView?: vscode.WebviewView;
     
@@ -37,11 +37,9 @@ export class WorkflowPanelProvider implements vscode.WebviewViewProvider {
     
     constructor(
         extensionContext: vscode.ExtensionContext,
-        workflowEngine: GeminiWorkflowEngine,
         projectIntelligence: ProjectIntelligenceSystem
     ) {
         this.extensionContext = extensionContext;
-        this._workflowEngine = workflowEngine;
         this.projectIntelligence = projectIntelligence;
     }
     

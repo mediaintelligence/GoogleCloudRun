@@ -5,9 +5,9 @@ import {
     TriggerContext, 
     TriggerAction 
 } from '../types/interfaces';
-import { ProjectIntelligence } from '../core/projectIntelligence';
+// import { ProjectIntelligence } from '../core/projectIntelligence';
 import { ClaudeCodeInterface } from '../core/claudeCodeInterface';
-import { GeminiWorkflowEngine } from '../core/geminiWorkflow';
+// import { GeminiWorkflowEngine } from '../core/geminiWorkflow';
 
 export class IntelligentTriggers {
     private triggers: Map<string, Trigger> = new Map();
@@ -16,21 +16,14 @@ export class IntelligentTriggers {
     private recentEdits: vscode.TextDocumentChangeEvent[] = [];
     private editDebounceTimer: NodeJS.Timeout | null = null;
     private claudeInterface: ClaudeCodeInterface;
-    private geminiWorkflow: GeminiWorkflowEngine;
+    // private geminiWorkflow: GeminiWorkflowEngine;
 
     constructor(
-        private _context: vscode.ExtensionContext,
-        private _workflowEngine: any,
-        private _memorySystem: any,
         private _projectIntelligence: any
     ) {
         // Create instances needed for the existing code
-        this.claudeInterface = new ClaudeCodeInterface(_context);
-        this.geminiWorkflow = new GeminiWorkflowEngine(
-            _context,
-            this.claudeInterface,  // ClaudeCodeInterface
-            null as any  // MemorySystem placeholder
-        );
+        this.claudeInterface = new ClaudeCodeInterface();
+        // this.geminiWorkflow = new GeminiWorkflowEngine();
         this.initializeDefaultTriggers();
         this.setupEventListeners();
     }
@@ -76,7 +69,7 @@ export class IntelligentTriggers {
             name: 'Smart Code Completion',
             type: 'completion',
             condition: new CompletionPatternCondition(),
-            action: new SmartCompletionAction(this.claudeInterface, this._projectIntelligence),
+            action: new SmartCompletionAction(this.claudeInterface),
             priority: 5,
             enabled: true
         });
@@ -109,7 +102,7 @@ export class IntelligentTriggers {
             name: 'Complex Task Detection',
             type: 'pattern',
             condition: new ComplexTaskCondition(),
-            action: new WorkflowSuggestionAction(this.geminiWorkflow),
+            action: new WorkflowSuggestionAction(),
             priority: 8,
             enabled: true
         });
@@ -573,14 +566,13 @@ Suggest a fix for this error.
 
 class SmartCompletionAction implements TriggerAction {
     constructor(
-        private claudeInterface: ClaudeCodeInterface,
-        private projectIntelligence: ProjectIntelligence
+        private claudeInterface: ClaudeCodeInterface
     ) {}
 
     async execute(context: TriggerContext): Promise<void> {
-        const line = context.document.lineAt(context.position.line);
-        const _prefix = line.text.substring(0, context.position.character);
-        const _suffix = line.text.substring(context.position.character);
+        // const line = context.document.lineAt(context.position.line);
+        // const _prefix = line.text.substring(0, context.position.character);
+        // const _suffix = line.text.substring(context.position.character);
 
         // Get surrounding code
         const before = context.document.getText(
@@ -678,7 +670,7 @@ class DocumentationAction implements TriggerAction {
 
     async execute(context: TriggerContext): Promise<void> {
         const line = context.position.line;
-        const _functionLine = context.document.lineAt(line).text;
+        // const _functionLine = context.document.lineAt(line).text;
         
         // Get full function/class definition
         let endLine = line;
@@ -735,7 +727,7 @@ Include parameter descriptions, return value, and examples if relevant.
 }
 
 class WorkflowSuggestionAction implements TriggerAction {
-    constructor(private _geminiWorkflow: GeminiWorkflowEngine) {}
+    constructor() {}
 
     async execute(context: TriggerContext): Promise<void> {
         // Analyze recent changes to understand task

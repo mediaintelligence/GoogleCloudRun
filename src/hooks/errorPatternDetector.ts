@@ -50,7 +50,6 @@ export class ErrorPatternDetector {
     private analysisThrottle: Map<string, number> = new Map();
 
     constructor(
-        private _context: vscode.ExtensionContext,
         private _claudeInterface: ClaudeCodeInterface,
         private _memorySystem: MemorySystem,
         private _projectIntelligence: ProjectIntelligence

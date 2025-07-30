@@ -420,7 +420,7 @@ export class ProjectIntelligence {
         const related: string[] = [];
         const fileName = path.basename(uri.fsPath);
         const fileNameWithoutExt = path.parse(fileName).name;
-        const _directory = path.dirname(uri.fsPath);
+        // const _directory = path.dirname(uri.fsPath);
 
         if (!this.projectStructure) {
             return related;

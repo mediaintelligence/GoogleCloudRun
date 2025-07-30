@@ -1,8 +1,6 @@
 // src/core/geminiWorkflow.ts
 
-import * as vscode from 'vscode';
-import { ClaudeCodeInterface } from './claudeCodeInterface';
-import { MemorySystem } from './memorySystem';
+
 import { 
     GeminiWorkflow, 
     WorkflowPhase, 
@@ -17,11 +15,7 @@ import {
 export class GeminiWorkflowEngine {
     private workflows: Map<string, GeminiWorkflow> = new Map();
     
-    constructor(
-        private _context: vscode.ExtensionContext,
-        private _claudeInterface: ClaudeCodeInterface,
-        private _memorySystem: MemorySystem
-    ) {}
+    constructor() {}
     
     async startWorkflow(
         title: string,

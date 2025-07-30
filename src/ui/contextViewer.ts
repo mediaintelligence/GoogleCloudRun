@@ -6,8 +6,7 @@ export class ContextViewer implements vscode.WebviewViewProvider {
 
     constructor(
         private readonly _context: vscode.ExtensionContext,
-        private readonly _projectIntelligence: any,
-        private readonly _memorySystem: any
+        private readonly _projectIntelligence: any
     ) {}
 
     public async show(): Promise<void> {
@@ -101,7 +100,7 @@ export class ContextViewer implements vscode.WebviewViewProvider {
                 }
             },
             null,
-            this.context.subscriptions
+            this._context.subscriptions
         );
     }
 

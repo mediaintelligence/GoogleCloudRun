@@ -27,9 +27,7 @@ import {
 export class BossAgentRouter {
     private routingHistory: Map<string, PerformanceMetrics> = new Map();
     
-    constructor(
-        private _context: vscode.ExtensionContext
-    ) {
+    constructor() {
         this.loadPerformanceHistory();
     }
     
@@ -149,7 +147,7 @@ export class BossAgentRouter {
         const config = vscode.workspace.getConfiguration('gemini-assistant.bossAgent');
         const fallbackChain = config.get<ModelProvider[]>('fallbackChain', ['claude4', 'gpt4o', 'gemini25']);
         const dailyCostLimit = config.get<number>('dailyCostLimit', 100);
-        const currentCost = this._context.globalState.get<number>('dailyCost', 0);
+        const currentCost = 0; // this._context.globalState.get<number>('dailyCost', 0);
 
         // Check for cached similar responses first
         const cachedResponse = await this.checkSemanticCache(fingerprint);
@@ -230,8 +228,8 @@ export class BossAgentRouter {
 
         const estimatedTokens = this.estimateTokens(request.prompt);
         const cost = this.estimateCost(model, estimatedTokens);
-        const currentCost = this._context.globalState.get<number>('dailyCost', 0);
-        this._context.globalState.update('dailyCost', currentCost + cost);
+        // const currentCost = 0; // this._context.globalState.get<number>('dailyCost', 0);
+        // this._context.globalState.update('dailyCost', currentCost + cost);
         
         return {
             content: `Response from ${model}: ${request.prompt}`,
@@ -359,12 +357,12 @@ export class BossAgentRouter {
     }
     
     private loadPerformanceHistory(): void {
-        const stored = this._context.globalState.get('routingHistory', {});
-        this.routingHistory = new Map(Object.entries(stored));
+        // const stored = this._context.globalState.get('routingHistory', {});
+        // this.routingHistory = new Map(Object.entries(stored));
     }
     
     private savePerformanceHistory(): void {
-        const obj = Object.fromEntries(this.routingHistory);
-        this._context.globalState.update('routingHistory', obj);
+        // const obj = Object.fromEntries(this.routingHistory);
+        // this._context.globalState.update('routingHistory', obj);
     }
 }

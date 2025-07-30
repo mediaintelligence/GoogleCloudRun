@@ -13,7 +13,6 @@ export class MemoryAwareHook {
     private enabled: boolean = true;
 
     constructor(
-        private _context: vscode.ExtensionContext,
         private _memorySystem: MemorySystem,
         private _projectIntelligence: ProjectIntelligence
     ) {

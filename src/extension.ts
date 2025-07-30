@@ -119,14 +119,10 @@ class ClaudeGeminiAssistant {
         this.memorySystem = new MemorySystem(this.extensionContext);
         
         console.log('🔌 Initializing Claude Code Interface...');
-        this.claudeCodeInterface = new ClaudeCodeInterface(this.extensionContext);
+        this.claudeCodeInterface = new ClaudeCodeInterface();
         
         console.log('🏗️ Initializing Gemini Workflow Engine...');
-        this.workflowEngine = new GeminiWorkflowEngine(
-            this.extensionContext,
-            this.claudeCodeInterface,
-            this.memorySystem
-        );
+        this.workflowEngine = new GeminiWorkflowEngine();
     }
     
     /**
@@ -135,15 +131,11 @@ class ClaudeGeminiAssistant {
     private async initializeIntelligentSystems(): Promise<void> {
         console.log('🧩 Initializing Intelligent Triggers System...');
         this.intelligentTriggers = new IntelligentTriggers(
-            this.extensionContext,
-            this.workflowEngine,
-            this.memorySystem,
             this.projectIntelligence
         );
 
         console.log('🧠 Initializing Memory-Aware Hook System...');
         this.memoryAwareHook = new MemoryAwareHook(
-            this.extensionContext,
             this.memorySystem,
             this.projectIntelligence.getProjectIntelligenceInstance()
         );
@@ -157,17 +149,12 @@ class ClaudeGeminiAssistant {
         
         this.workflowPanelProvider = new WorkflowPanelProvider(
             this.extensionContext,
-            this.workflowEngine,
             this.projectIntelligence
         );
         
 
         
-        this.contextProvider = new ProjectContextProvider(
-            this.extensionContext,
-            this.projectIntelligence,
-            this.memorySystem
-        );
+        this.contextProvider = new ProjectContextProvider();
         
         // Register webview providers
         this.extensionContext.subscriptions.push(

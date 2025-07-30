@@ -1,7 +1,6 @@
 
 import * as vscode from 'vscode';
-import { MemorySystem } from '../core/memorySystem';
-import { ProjectIntelligence } from '../core/projectIntelligence';
+
 import { 
     WorkflowPhase, 
     PhaseStatus,
@@ -26,9 +25,7 @@ export class ProgressMonitor {
     private updateInterval: NodeJS.Timeout | null = null;
 
     constructor(
-        private _context: vscode.ExtensionContext,
-        private _memorySystem: MemorySystem,
-        private _projectIntelligence: ProjectIntelligence
+        private _context: vscode.ExtensionContext
     ) {
         this.sessionStartTime = new Date();
         this.statusBarItem = vscode.window.createStatusBarItem(
@@ -223,7 +220,7 @@ export class ProgressMonitor {
                 m.timestamp >= range.start && m.timestamp <= range.end
             );
 
-            for (const mod of relevantMods) {
+            for (const _mod of relevantMods) {
                 if (lastFile && lastFile !== file) {
                     switches++;
                 }
@@ -614,12 +611,12 @@ export class ProgressMonitor {
      */
     private async loadPreviousSession(): Promise<void> {
         try {
-            const sessionFile = vscode.Uri.joinPath(
-                this._context.globalStorageUri,
-                'progress-session.json'
-            );
-            const data = await vscode.workspace.fs.readFile(sessionFile);
-            const _session = JSON.parse(data.toString());
+            // const sessionFile = vscode.Uri.joinPath(
+            //     this._context.globalStorageUri,
+            //     'progress-session.json'
+            // );
+            // const data = await vscode.workspace.fs.readFile(sessionFile);
+            // const _session = JSON.parse(data.toString());
             
             // Restore relevant data
             // Implementation would deserialize the saved state

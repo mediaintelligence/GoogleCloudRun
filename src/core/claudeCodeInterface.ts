@@ -13,7 +13,7 @@ import {
 export class ClaudeCodeInterface {
     private executions: ClaudeCodeExecution[] = [];
     
-    constructor(private _context: vscode.ExtensionContext) {}
+    constructor() {}
     
     async executeWithContext(
         instruction: string,

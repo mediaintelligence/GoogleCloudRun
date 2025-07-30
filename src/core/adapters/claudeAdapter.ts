@@ -14,7 +14,7 @@ export class ClaudeAdapter extends BaseLLMAdapter {
     readonly name: string = 'Claude 4 Sonnet';
     readonly version: string = 'claude-3-5-sonnet-20241022';
     
-    private readonly _baseUrl = 'https://api.anthropic.com/v1/messages';
+    // private readonly _baseUrl = 'https://api.anthropic.com/v1/messages';
     
     constructor(config: AdapterConfig) {
         super(config);

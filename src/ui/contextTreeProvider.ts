@@ -7,11 +7,7 @@ export class ProjectContextProvider implements vscode.TreeDataProvider<ContextIt
     private _onDidChangeTreeData: vscode.EventEmitter<ContextItem | undefined | null | void> = new vscode.EventEmitter<ContextItem | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<ContextItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
-    constructor(
-        private _context: vscode.ExtensionContext,
-        private _projectIntelligence: any,
-        private _memorySystem: any
-    ) {}
+    constructor() {}
 
     getTreeItem(element: ContextItem): vscode.TreeItem {
         const item = new vscode.TreeItem(element.label, 
