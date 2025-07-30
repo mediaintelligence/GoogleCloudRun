@@ -2,7 +2,7 @@
   "name": "gemini-assistant",
   "displayName": "Gemini Assistant for VS Code",
   "description": "AI-powered development assistant using Google's Gemini for intelligent code analysis, systematic workflows, and adaptive learning",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "license": "MIT",
   "publisher": "your-publisher-name",
   "author": {
@@ -37,7 +37,10 @@
   },
   "homepage": "https://github.com/mediaintelligence/GoogleCloudRun#readme",
   "activationEvents": [
-    "onStartupFinished"
+    "onCommand:claude-assistant.startGeminiWorkflow",
+    "onCommand:claude-assistant.analyzeProject",
+    "onCommand:claude-assistant.executeWithContext",
+    "onView:claude-assistant.workflow"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -77,6 +80,12 @@
         "title": "Review Last Claude Code Execution",
         "category": "Claude Assistant",
         "icon": "$(history)"
+      },
+      {
+        "command": "claude-assistant.clearApiKey",
+        "title": "Clear Stored API Key",
+        "category": "Claude Assistant",
+        "icon": "$(trash)"
       }
     ],
     "keybindings": [
@@ -127,12 +136,36 @@
         },
         {
           "command": "claude-assistant.configureWorkflow"
+        },
+        {
+          "command": "claude-assistant.clearApiKey"
         }
       ]
     },
     "configuration": {
       "title": "Claude Gemini Assistant",
       "properties": {
+        "gemini-assistant.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your Google Gemini API key. This is stored securely.",
+          "markdownDescription": "Your Google Gemini API key. This is stored securely in VS Code's SecretStorage. [Get an API key](https://makersuite.google.com/app/apikey)."
+        },
+        "gemini-assistant.bossAgent.fallbackChain": {
+          "type": "array",
+          "default": [
+            "claude4",
+            "gpt4o",
+            "gemini25",
+            "grok4"
+          ],
+          "description": "The order of fallback models to use if the primary model fails."
+        },
+        "gemini-assistant.bossAgent.dailyCostLimit": {
+          "type": "number",
+          "default": 100,
+          "description": "The daily cost limit in credits for the Boss Agent to optimize against."
+        },
         "claude-assistant.claudeCodePath": {
           "type": "string",
           "default": "claude-code",
@@ -253,10 +286,11 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.1.0",
+    "@google/generative-ai": "^0.14.0",
     "axios": "^1.6.0",
     "chokidar": "^4.0.3",
     "ignore": "^7.0.5",
     "uuid": "^9.0.1"
   }
 }
+
