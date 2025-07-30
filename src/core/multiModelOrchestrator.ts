@@ -13,14 +13,19 @@ import {
 } from '../types/bossAgentTypes';
 import { LLMAdapter } from './adapters/llmAdapter';
 
+class OrchestratorError extends Error {
+    constructor(message: string, public readonly originalError?: any) {
+        super(message);
+        this.name = 'OrchestratorError';
+    }
+}
+
 /**
  * Multi-Model Orchestrator - The Evolution of Your VS Code Extension
- * 
- * This class bridges your existing Gemini Assistant extension with the new
+ * * This class bridges your existing Gemini Assistant extension with the new
  * Boss Agent Router architecture, transforming it into a sophisticated
  * multi-model AI orchestration platform while preserving all existing functionality.
- * 
- * Key Features:
+ * * Key Features:
  * - Seamless integration with existing extension components
  * - Intelligent model routing based on task analysis
  * - Backwards compatibility with current workflows
@@ -68,7 +73,7 @@ export class MultiModelOrchestrator {
             
         } catch (error) {
             console.error('❌ Failed to initialize Multi-Model Orchestrator:', error);
-            throw error;
+            throw new OrchestratorError('Initialization failed', error);
         }
     }
     
@@ -81,20 +86,27 @@ export class MultiModelOrchestrator {
         options?: RequestOptions
     ): Promise<EnhancedResponse> {
         if (!this.isInitialized) {
-            throw new Error('Orchestrator not initialized');
+            throw new OrchestratorError('Orchestrator not initialized');
         }
         
         const startTime = Date.now();
-        
+        let request: LLMRequest;
+        let routingDecision: RoutingDecision;
+
         try {
             // Build comprehensive request
-            const request = await this.buildRequest(prompt, context, options);
+            request = await this.buildRequest(prompt, context, options);
             
             // Let Boss Agent choose the optimal model
-            const routingDecision = await this.bossAgent.route(request);
-            
+            routingDecision = await this.bossAgent.route(request);
             console.log(`🎯 Boss Agent Decision: ${routingDecision.reasoning}`);
             
+        } catch (error) {
+            console.error('❌ Request building or routing failed:', error);
+            throw new OrchestratorError('Failed to prepare the request', error);
+        }
+
+        try {
             // Execute with fallback support
             const response = await this.bossAgent.executeWithFallbacks(request, routingDecision);
             
@@ -107,8 +119,8 @@ export class MultiModelOrchestrator {
             return enhancedResponse;
             
         } catch (error) {
-            console.error('❌ Request processing failed:', error);
-            throw this.wrapError(error);
+            console.error('❌ Request execution failed across all models:', error);
+            throw new OrchestratorError('All models failed to process the request', error);
         }
     }
     
@@ -126,7 +138,7 @@ export class MultiModelOrchestrator {
         
         const adapter = this.adapters.get(routingDecision.primaryModel);
         if (!adapter) {
-            throw new Error(`Adapter not found for ${routingDecision.primaryModel}`);
+            throw new OrchestratorError(`Adapter not found for ${routingDecision.primaryModel}`);
         }
         
         const response = await adapter.generateStream(request, onChunk);
@@ -316,10 +328,6 @@ export class MultiModelOrchestrator {
         setInterval(async () => {
             await this.performHealthChecks();
         }, 5 * 60 * 1000); // Every 5 minutes
-    }
-    
-    private wrapError(error: any): Error {
-        return new Error(`Multi-Model Orchestrator: ${error.message || error}`);
     }
 }
 
