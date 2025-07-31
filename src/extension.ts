@@ -197,18 +197,44 @@ class ClaudeGeminiAssistant {
      */
     private registerCommands(): void {
         const commands = [
-            // Primary workflow commands
+            // Core workflow commands
             {
                 id: 'claude-assistant.startGeminiWorkflow',
                 handler: () => this.handleStartGeminiWorkflow()
             },
             {
+                id: 'claude-assistant.analyzeProject',
+                handler: () => this.handleAnalyzeProject()
+            },
+            {
                 id: 'claude-assistant.executeWithContext',
                 handler: () => this.handleExecuteWithContext()
             },
+            
+            // NEW: Advanced AI Features
             {
-                id: 'claude-assistant.analyzeProject',
-                handler: () => this.handleAnalyzeProject()
+                id: 'claude-assistant.generateCode',
+                handler: () => this.handleGenerateCode()
+            },
+            {
+                id: 'claude-assistant.refactorCode',
+                handler: () => this.handleRefactorCode()
+            },
+            {
+                id: 'claude-assistant.debugWithAI',
+                handler: () => this.handleDebugWithAI()
+            },
+            {
+                id: 'claude-assistant.explainCode',
+                handler: () => this.handleExplainCode()
+            },
+            {
+                id: 'claude-assistant.optimizePerformance',
+                handler: () => this.handleOptimizePerformance()
+            },
+            {
+                id: 'claude-assistant.generateTests',
+                handler: () => this.handleGenerateTests()
             },
             
             // Information and configuration commands
@@ -500,16 +526,398 @@ class ClaudeGeminiAssistant {
     }
 
     /**
-     * Handles clearing the stored API key from secret storage.
+     * Handles clearing the stored API key
      */
     private async handleClearApiKey(): Promise<void> {
         try {
-            await this.extensionContext.secrets.delete('gemini-assistant.apiKey');
-            vscode.window.showInformationMessage('Gemini API Key has been cleared.');
+            await this.extensionContext.secrets.delete('gemini-api-key');
+            vscode.window.showInformationMessage('API key cleared successfully');
         } catch (error) {
-            console.error('Error clearing API key:', error);
-            vscode.window.showErrorMessage('Failed to clear API key.');
+            vscode.window.showErrorMessage('Failed to clear API key');
         }
+    }
+
+    // NEW: Advanced AI Feature Implementations
+    
+    /**
+     * Generates code based on natural language description
+     */
+    private async handleGenerateCode(): Promise<void> {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor found');
+            return;
+        }
+
+        const description = await vscode.window.showInputBox({
+            prompt: 'Describe the code you want to generate:',
+            placeHolder: 'e.g., "Create a function that validates email addresses"'
+        });
+
+        if (!description) return;
+
+        try {
+            const projectIntel = this.projectIntelligence.getProjectIntelligenceInstance();
+            // Create a basic context object
+            const basicContext = {
+                projectIntelligence: projectIntel,
+                currentWorkflow: null,
+                currentPhase: null,
+                relevantMemories: [],
+                activeFiles: this.getActiveFiles(),
+                currentErrors: this.getCurrentErrors(),
+                projectStructure: projectIntel.getProjectStructure(),
+                instruction: description,
+                successCriteria: this.generateSuccessCriteria(description),
+                executionHistory: []
+            };
+            
+            const prompt = `Generate code for: ${description}\n\nRequirements:\n- Use the current file's language and style\n- Include proper error handling\n- Add comments for clarity\n- Follow best practices for the language`;
+            
+            const response = await this.claudeCodeInterface.executeWithContext(prompt, basicContext, editor.document.uri.fsPath);
+            
+            // Insert the generated code
+            const position = editor.selection.active;
+            await editor.edit(editBuilder => {
+                editBuilder.insert(position, response.output || response.context || '');
+            });
+            
+            vscode.window.showInformationMessage('Code generated successfully!');
+        } catch (error) {
+            vscode.window.showErrorMessage('Failed to generate code: ' + error);
+        }
+    }
+
+    /**
+     * Refactors selected code using AI
+     */
+    private async handleRefactorCode(): Promise<void> {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || editor.selection.isEmpty) {
+            vscode.window.showErrorMessage('Please select code to refactor');
+            return;
+        }
+
+        const selectedCode = editor.document.getText(editor.selection);
+        const refactorType = await vscode.window.showQuickPick([
+            'Improve readability',
+            'Optimize performance',
+            'Reduce complexity',
+            'Follow best practices',
+            'Extract functions/methods',
+            'Custom refactoring'
+        ], {
+            placeHolder: 'Choose refactoring type'
+        });
+
+        if (!refactorType) return;
+
+        try {
+            const projectIntel = this.projectIntelligence.getProjectIntelligenceInstance();
+            const basicContext = {
+                projectIntelligence: projectIntel,
+                currentWorkflow: null,
+                currentPhase: null,
+                relevantMemories: [],
+                activeFiles: this.getActiveFiles(),
+                currentErrors: this.getCurrentErrors(),
+                projectStructure: projectIntel.getProjectStructure(),
+                instruction: `Refactor code: ${refactorType}`,
+                successCriteria: this.generateSuccessCriteria(`Refactor code: ${refactorType}`),
+                executionHistory: []
+            };
+            
+            const prompt = `Refactor this code to ${refactorType.toLowerCase()}:\n\n${selectedCode}\n\nRequirements:\n- Maintain the same functionality\n- Improve code quality\n- Add comments if needed\n- Follow language best practices`;
+            
+            const response = await this.claudeCodeInterface.executeWithContext(prompt, basicContext, editor.document.uri.fsPath);
+            
+            // Replace the selected code
+            await editor.edit(editBuilder => {
+                editBuilder.replace(editor.selection, response.output || response.context || '');
+            });
+            
+            vscode.window.showInformationMessage('Code refactored successfully!');
+        } catch (error) {
+            vscode.window.showErrorMessage('Failed to refactor code: ' + error);
+        }
+    }
+
+    /**
+     * Debugs code using AI assistance
+     */
+    private async handleDebugWithAI(): Promise<void> {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor found');
+            return;
+        }
+
+        const diagnostics = vscode.languages.getDiagnostics(editor.document.uri);
+        const errors = diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error);
+        
+        if (errors.length === 0) {
+            vscode.window.showInformationMessage('No errors found in the current file');
+            return;
+        }
+
+        try {
+            const projectIntel = this.projectIntelligence.getProjectIntelligenceInstance();
+            const basicContext = {
+                projectIntelligence: projectIntel,
+                currentWorkflow: null,
+                currentPhase: null,
+                relevantMemories: [],
+                activeFiles: this.getActiveFiles(),
+                currentErrors: this.getCurrentErrors(),
+                projectStructure: projectIntel.getProjectStructure(),
+                instruction: 'Debug code errors',
+                successCriteria: this.generateSuccessCriteria('Debug code errors'),
+                executionHistory: []
+            };
+            
+            const errorDetails = errors.map(e => `Line ${e.range.start.line + 1}: ${e.message}`).join('\n');
+            const fileContent = editor.document.getText();
+            
+            const prompt = `Debug these errors in the code:\n\nErrors:\n${errorDetails}\n\nCode:\n${fileContent}\n\nProvide:\n1. Explanation of each error\n2. Suggested fixes\n3. Prevention tips`;
+            
+            const response = await this.claudeCodeInterface.executeWithContext(prompt, basicContext, editor.document.uri.fsPath);
+            
+            // Show results in a new webview
+            const panel = vscode.window.createWebviewPanel(
+                'debugResults',
+                'AI Debug Results',
+                vscode.ViewColumn.Beside,
+                { enableScripts: true }
+            );
+            
+            panel.webview.html = this.getDebugResultsHtml(response.output || response.context || '');
+        } catch (error) {
+            vscode.window.showErrorMessage('Failed to debug with AI: ' + error);
+        }
+    }
+
+    /**
+     * Explains selected code using AI
+     */
+    private async handleExplainCode(): Promise<void> {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor found');
+            return;
+        }
+
+        const selectedCode = editor.selection.isEmpty 
+            ? editor.document.getText() 
+            : editor.document.getText(editor.selection);
+
+        try {
+            const projectIntel = this.projectIntelligence.getProjectIntelligenceInstance();
+            const basicContext = {
+                projectIntelligence: projectIntel,
+                currentWorkflow: null,
+                currentPhase: null,
+                relevantMemories: [],
+                activeFiles: this.getActiveFiles(),
+                currentErrors: this.getCurrentErrors(),
+                projectStructure: projectIntel.getProjectStructure(),
+                instruction: 'Explain code',
+                successCriteria: this.generateSuccessCriteria('Explain code'),
+                executionHistory: []
+            };
+            
+            const prompt = `Explain this code in detail:\n\n${selectedCode}\n\nProvide:\n1. What the code does\n2. How it works\n3. Key concepts used\n4. Potential improvements`;
+            
+            const response = await this.claudeCodeInterface.executeWithContext(prompt, basicContext, editor.document.uri.fsPath);
+            
+            // Show explanation in a new webview
+            const panel = vscode.window.createWebviewPanel(
+                'codeExplanation',
+                'Code Explanation',
+                vscode.ViewColumn.Beside,
+                { enableScripts: true }
+            );
+            
+            panel.webview.html = this.getCodeExplanationHtml(response.output || response.context || '');
+        } catch (error) {
+            vscode.window.showErrorMessage('Failed to explain code: ' + error);
+        }
+    }
+
+    /**
+     * Optimizes code performance using AI
+     */
+    private async handleOptimizePerformance(): Promise<void> {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor found');
+            return;
+        }
+
+        const selectedCode = editor.selection.isEmpty 
+            ? editor.document.getText() 
+            : editor.document.getText(editor.selection);
+
+        try {
+            const projectIntel = this.projectIntelligence.getProjectIntelligenceInstance();
+            const basicContext = {
+                projectIntelligence: projectIntel,
+                currentWorkflow: null,
+                currentPhase: null,
+                relevantMemories: [],
+                activeFiles: this.getActiveFiles(),
+                currentErrors: this.getCurrentErrors(),
+                projectStructure: projectIntel.getProjectStructure(),
+                instruction: 'Optimize code performance',
+                successCriteria: this.generateSuccessCriteria('Optimize code performance'),
+                executionHistory: []
+            };
+            
+            const prompt = `Analyze and optimize this code for performance:\n\n${selectedCode}\n\nProvide:\n1. Performance bottlenecks identified\n2. Optimized version\n3. Performance improvements explanation\n4. Best practices applied`;
+            
+            const response = await this.claudeCodeInterface.executeWithContext(prompt, basicContext, editor.document.uri.fsPath);
+            
+            // Show optimization results
+            const panel = vscode.window.createWebviewPanel(
+                'performanceOptimization',
+                'Performance Optimization',
+                vscode.ViewColumn.Beside,
+                { enableScripts: true }
+            );
+            
+            panel.webview.html = this.getPerformanceOptimizationHtml(response.output || response.context || '');
+        } catch (error) {
+            vscode.window.showErrorMessage('Failed to optimize performance: ' + error);
+        }
+    }
+
+    /**
+     * Generates tests for selected code
+     */
+    private async handleGenerateTests(): Promise<void> {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor found');
+            return;
+        }
+
+        const selectedCode = editor.selection.isEmpty 
+            ? editor.document.getText() 
+            : editor.document.getText(editor.selection);
+
+        try {
+            const projectIntel = this.projectIntelligence.getProjectIntelligenceInstance();
+            const basicContext = {
+                projectIntelligence: projectIntel,
+                currentWorkflow: null,
+                currentPhase: null,
+                relevantMemories: [],
+                activeFiles: this.getActiveFiles(),
+                currentErrors: this.getCurrentErrors(),
+                projectStructure: projectIntel.getProjectStructure(),
+                instruction: 'Generate tests',
+                successCriteria: this.generateSuccessCriteria('Generate tests'),
+                executionHistory: []
+            };
+            
+            const prompt = `Generate comprehensive tests for this code:\n\n${selectedCode}\n\nRequirements:\n1. Unit tests for all functions/methods\n2. Edge case testing\n3. Error handling tests\n4. Integration tests if applicable\n5. Use appropriate testing framework for the language`;
+            
+            const response = await this.claudeCodeInterface.executeWithContext(prompt, basicContext, editor.document.uri.fsPath);
+            
+            // Create a new test file
+            const testFileName = editor.document.fileName.replace(/\.(\w+)$/, '.test.$1');
+            const testUri = vscode.Uri.file(testFileName);
+            
+            const testDocument = await vscode.workspace.openTextDocument(testUri);
+            const testEditor = await vscode.window.showTextDocument(testDocument);
+            
+            await testEditor.edit(editBuilder => {
+                editBuilder.insert(new vscode.Position(0, 0), response.output || response.context || '');
+            });
+            
+            vscode.window.showInformationMessage(`Tests generated in ${testFileName}`);
+        } catch (error) {
+            vscode.window.showErrorMessage('Failed to generate tests: ' + error);
+        }
+    }
+
+    // Helper methods for webview content
+    private getDebugResultsHtml(content: string): string {
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>AI Debug Results</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 20px; }
+                    .debug-section { margin-bottom: 20px; }
+                    .error-item { background: #f5f5f5; padding: 10px; margin: 10px 0; border-left: 4px solid #ff4444; }
+                    .fix-item { background: #f0f8ff; padding: 10px; margin: 10px 0; border-left: 4px solid #0066cc; }
+                    pre { background: #f8f8f8; padding: 10px; border-radius: 4px; overflow-x: auto; }
+                </style>
+            </head>
+            <body>
+                <h1>🔍 AI Debug Results</h1>
+                <div class="debug-section">
+                    ${content.replace(/\n/g, '<br>')}
+                </div>
+            </body>
+            </html>
+        `;
+    }
+
+    private getCodeExplanationHtml(content: string): string {
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Code Explanation</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 20px; }
+                    .explanation-section { margin-bottom: 20px; }
+                    .concept { background: #f0f8ff; padding: 15px; margin: 10px 0; border-radius: 8px; }
+                    .improvement { background: #fff8f0; padding: 15px; margin: 10px 0; border-radius: 8px; }
+                    pre { background: #f8f8f8; padding: 10px; border-radius: 4px; overflow-x: auto; }
+                </style>
+            </head>
+            <body>
+                <h1>📚 Code Explanation</h1>
+                <div class="explanation-section">
+                    ${content.replace(/\n/g, '<br>')}
+                </div>
+            </body>
+            </html>
+        `;
+    }
+
+    private getPerformanceOptimizationHtml(content: string): string {
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Performance Optimization</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 20px; }
+                    .optimization-section { margin-bottom: 20px; }
+                    .bottleneck { background: #fff0f0; padding: 15px; margin: 10px 0; border-radius: 8px; }
+                    .optimization { background: #f0fff0; padding: 15px; margin: 10px 0; border-radius: 8px; }
+                    .best-practice { background: #f0f0ff; padding: 15px; margin: 10px 0; border-radius: 8px; }
+                    pre { background: #f8f8f8; padding: 10px; border-radius: 4px; overflow-x: auto; }
+                </style>
+            </head>
+            <body>
+                <h1>⚡ Performance Optimization</h1>
+                <div class="optimization-section">
+                    ${content.replace(/\n/g, '<br>')}
+                </div>
+            </body>
+            </html>
+        `;
     }
     
     /**

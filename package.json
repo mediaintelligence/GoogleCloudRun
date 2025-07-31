@@ -1,13 +1,13 @@
 {
-  "name": "gemini-assistant",
-  "displayName": "Gemini Assistant for VS Code",
-  "description": "AI-powered development assistant using Google's Gemini for intelligent code analysis, systematic workflows, and adaptive learning",
-  "version": "1.1.0",
+  "name": "claude-gemini-assistant",
+  "displayName": "Claude Gemini Assistant",
+  "description": "Advanced AI-powered development assistant combining Claude and Gemini models for intelligent code analysis, systematic workflows, and adaptive learning",
+  "version": "1.2.0",
   "license": "MIT",
-  "publisher": "your-publisher-name",
+  "publisher": "mediaintelligence",
   "author": {
-    "name": "Your Name",
-    "email": "your.email@example.com"
+    "name": "Media Intelligence",
+    "email": "ceo@mediaintelligence.ai"
   },
   "engines": {
     "vscode": "^1.85.0"
@@ -15,14 +15,20 @@
   "categories": [
     "AI",
     "Programming Languages",
-    "Other"
+    "Other",
+    "Machine Learning"
   ],
   "keywords": [
+    "claude",
     "gemini",
     "ai",
     "assistant",
     "code analysis",
-    "workflow automation"
+    "workflow automation",
+    "machine learning",
+    "code generation",
+    "refactoring",
+    "debugging"
   ],
   "galleryBanner": {
     "color": "#1a73e8",
@@ -40,6 +46,12 @@
     "onCommand:claude-assistant.startGeminiWorkflow",
     "onCommand:claude-assistant.analyzeProject",
     "onCommand:claude-assistant.executeWithContext",
+    "onCommand:claude-assistant.generateCode",
+    "onCommand:claude-assistant.refactorCode",
+    "onCommand:claude-assistant.debugWithAI",
+    "onCommand:claude-assistant.explainCode",
+    "onCommand:claude-assistant.optimizePerformance",
+    "onCommand:claude-assistant.generateTests",
     "onView:claude-assistant.workflow"
   ],
   "main": "./out/extension.js",
@@ -62,6 +74,42 @@
         "title": "Execute Claude Code with Full Context",
         "category": "Claude Assistant",
         "icon": "$(play)"
+      },
+      {
+        "command": "claude-assistant.generateCode",
+        "title": "Generate Code with AI",
+        "category": "Claude Assistant",
+        "icon": "$(code)"
+      },
+      {
+        "command": "claude-assistant.refactorCode",
+        "title": "Refactor Code with AI",
+        "category": "Claude Assistant",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "claude-assistant.debugWithAI",
+        "title": "Debug with AI",
+        "category": "Claude Assistant",
+        "icon": "$(bug)"
+      },
+      {
+        "command": "claude-assistant.explainCode",
+        "title": "Explain Code with AI",
+        "category": "Claude Assistant",
+        "icon": "$(book)"
+      },
+      {
+        "command": "claude-assistant.optimizePerformance",
+        "title": "Optimize Performance with AI",
+        "category": "Claude Assistant",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "claude-assistant.generateTests",
+        "title": "Generate Tests with AI",
+        "category": "Claude Assistant",
+        "icon": "$(testing)"
       },
       {
         "command": "claude-assistant.showProjectMemory",
