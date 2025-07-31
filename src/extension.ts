@@ -557,19 +557,25 @@ class ClaudeGeminiAssistant {
         if (!description) return;
 
         try {
-            const projectIntel = this.projectIntelligence.getProjectIntelligenceInstance();
+            const projectIntel = await this.projectIntelligence.getProjectIntelligence();
+            if (!projectIntel) {
+                vscode.window.showErrorMessage('Failed to get project intelligence');
+                return;
+            }
             // Create a basic context object
             const basicContext = {
                 projectIntelligence: projectIntel,
-                currentWorkflow: null,
-                currentPhase: null,
+                currentWorkflow: await this.createMockWorkflow(description, projectIntel),
+                currentPhase: await this.createMockPhase(description),
                 relevantMemories: [],
+                similarExecutions: [],
+                learnedPatterns: [],
                 activeFiles: this.getActiveFiles(),
+                recentChanges: [],
                 currentErrors: this.getCurrentErrors(),
-                projectStructure: projectIntel.getProjectStructure(),
-                instruction: description,
-                successCriteria: this.generateSuccessCriteria(description),
-                executionHistory: []
+                suggestedApproaches: [],
+                cautionAreas: [],
+                successCriteria: this.generateSuccessCriteria(description)
             };
             
             const prompt = `Generate code for: ${description}\n\nRequirements:\n- Use the current file's language and style\n- Include proper error handling\n- Add comments for clarity\n- Follow best practices for the language`;
@@ -613,18 +619,24 @@ class ClaudeGeminiAssistant {
         if (!refactorType) return;
 
         try {
-            const projectIntel = this.projectIntelligence.getProjectIntelligenceInstance();
+            const projectIntel = await this.projectIntelligence.getProjectIntelligence();
+            if (!projectIntel) {
+                vscode.window.showErrorMessage('Failed to get project intelligence');
+                return;
+            }
             const basicContext = {
                 projectIntelligence: projectIntel,
-                currentWorkflow: null,
-                currentPhase: null,
+                currentWorkflow: await this.createMockWorkflow(`Refactor code: ${refactorType}`, projectIntel),
+                currentPhase: await this.createMockPhase(`Refactor code: ${refactorType}`),
                 relevantMemories: [],
+                similarExecutions: [],
+                learnedPatterns: [],
                 activeFiles: this.getActiveFiles(),
+                recentChanges: [],
                 currentErrors: this.getCurrentErrors(),
-                projectStructure: projectIntel.getProjectStructure(),
-                instruction: `Refactor code: ${refactorType}`,
-                successCriteria: this.generateSuccessCriteria(`Refactor code: ${refactorType}`),
-                executionHistory: []
+                suggestedApproaches: [],
+                cautionAreas: [],
+                successCriteria: this.generateSuccessCriteria(`Refactor code: ${refactorType}`)
             };
             
             const prompt = `Refactor this code to ${refactorType.toLowerCase()}:\n\n${selectedCode}\n\nRequirements:\n- Maintain the same functionality\n- Improve code quality\n- Add comments if needed\n- Follow language best practices`;
@@ -661,18 +673,24 @@ class ClaudeGeminiAssistant {
         }
 
         try {
-            const projectIntel = this.projectIntelligence.getProjectIntelligenceInstance();
+            const projectIntel = await this.projectIntelligence.getProjectIntelligence();
+            if (!projectIntel) {
+                vscode.window.showErrorMessage('Failed to get project intelligence');
+                return;
+            }
             const basicContext = {
                 projectIntelligence: projectIntel,
-                currentWorkflow: null,
-                currentPhase: null,
+                currentWorkflow: await this.createMockWorkflow('Debug code errors', projectIntel),
+                currentPhase: await this.createMockPhase('Debug code errors'),
                 relevantMemories: [],
+                similarExecutions: [],
+                learnedPatterns: [],
                 activeFiles: this.getActiveFiles(),
+                recentChanges: [],
                 currentErrors: this.getCurrentErrors(),
-                projectStructure: projectIntel.getProjectStructure(),
-                instruction: 'Debug code errors',
-                successCriteria: this.generateSuccessCriteria('Debug code errors'),
-                executionHistory: []
+                suggestedApproaches: [],
+                cautionAreas: [],
+                successCriteria: this.generateSuccessCriteria('Debug code errors')
             };
             
             const errorDetails = errors.map(e => `Line ${e.range.start.line + 1}: ${e.message}`).join('\n');
@@ -711,18 +729,24 @@ class ClaudeGeminiAssistant {
             : editor.document.getText(editor.selection);
 
         try {
-            const projectIntel = this.projectIntelligence.getProjectIntelligenceInstance();
+            const projectIntel = await this.projectIntelligence.getProjectIntelligence();
+            if (!projectIntel) {
+                vscode.window.showErrorMessage('Failed to get project intelligence');
+                return;
+            }
             const basicContext = {
                 projectIntelligence: projectIntel,
-                currentWorkflow: null,
-                currentPhase: null,
+                currentWorkflow: await this.createMockWorkflow('Explain code', projectIntel),
+                currentPhase: await this.createMockPhase('Explain code'),
                 relevantMemories: [],
+                similarExecutions: [],
+                learnedPatterns: [],
                 activeFiles: this.getActiveFiles(),
+                recentChanges: [],
                 currentErrors: this.getCurrentErrors(),
-                projectStructure: projectIntel.getProjectStructure(),
-                instruction: 'Explain code',
-                successCriteria: this.generateSuccessCriteria('Explain code'),
-                executionHistory: []
+                suggestedApproaches: [],
+                cautionAreas: [],
+                successCriteria: this.generateSuccessCriteria('Explain code')
             };
             
             const prompt = `Explain this code in detail:\n\n${selectedCode}\n\nProvide:\n1. What the code does\n2. How it works\n3. Key concepts used\n4. Potential improvements`;
@@ -758,18 +782,24 @@ class ClaudeGeminiAssistant {
             : editor.document.getText(editor.selection);
 
         try {
-            const projectIntel = this.projectIntelligence.getProjectIntelligenceInstance();
+            const projectIntel = await this.projectIntelligence.getProjectIntelligence();
+            if (!projectIntel) {
+                vscode.window.showErrorMessage('Failed to get project intelligence');
+                return;
+            }
             const basicContext = {
                 projectIntelligence: projectIntel,
-                currentWorkflow: null,
-                currentPhase: null,
+                currentWorkflow: await this.createMockWorkflow('Optimize code performance', projectIntel),
+                currentPhase: await this.createMockPhase('Optimize code performance'),
                 relevantMemories: [],
+                similarExecutions: [],
+                learnedPatterns: [],
                 activeFiles: this.getActiveFiles(),
+                recentChanges: [],
                 currentErrors: this.getCurrentErrors(),
-                projectStructure: projectIntel.getProjectStructure(),
-                instruction: 'Optimize code performance',
-                successCriteria: this.generateSuccessCriteria('Optimize code performance'),
-                executionHistory: []
+                suggestedApproaches: [],
+                cautionAreas: [],
+                successCriteria: this.generateSuccessCriteria('Optimize code performance')
             };
             
             const prompt = `Analyze and optimize this code for performance:\n\n${selectedCode}\n\nProvide:\n1. Performance bottlenecks identified\n2. Optimized version\n3. Performance improvements explanation\n4. Best practices applied`;
@@ -805,18 +835,24 @@ class ClaudeGeminiAssistant {
             : editor.document.getText(editor.selection);
 
         try {
-            const projectIntel = this.projectIntelligence.getProjectIntelligenceInstance();
+            const projectIntel = await this.projectIntelligence.getProjectIntelligence();
+            if (!projectIntel) {
+                vscode.window.showErrorMessage('Failed to get project intelligence');
+                return;
+            }
             const basicContext = {
                 projectIntelligence: projectIntel,
-                currentWorkflow: null,
-                currentPhase: null,
+                currentWorkflow: await this.createMockWorkflow('Generate tests', projectIntel),
+                currentPhase: await this.createMockPhase('Generate tests'),
                 relevantMemories: [],
+                similarExecutions: [],
+                learnedPatterns: [],
                 activeFiles: this.getActiveFiles(),
+                recentChanges: [],
                 currentErrors: this.getCurrentErrors(),
-                projectStructure: projectIntel.getProjectStructure(),
-                instruction: 'Generate tests',
-                successCriteria: this.generateSuccessCriteria('Generate tests'),
-                executionHistory: []
+                suggestedApproaches: [],
+                cautionAreas: [],
+                successCriteria: this.generateSuccessCriteria('Generate tests')
             };
             
             const prompt = `Generate comprehensive tests for this code:\n\n${selectedCode}\n\nRequirements:\n1. Unit tests for all functions/methods\n2. Edge case testing\n3. Error handling tests\n4. Integration tests if applicable\n5. Use appropriate testing framework for the language`;
