@@ -201,7 +201,7 @@ export class CollaborativeExecutor {
             const dis = disagreement as any;
             if (!dis.resolved) {
                 const debate = await this.facilitateDebate(
-                    dis,
+                    dis as Disagreement,
                     execution,
                     context
                 );

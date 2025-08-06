@@ -1,6 +1,17 @@
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
 
+// Import Disagreement type from collaborativeExecutor
+export interface Disagreement {
+    id: string;
+    topic: string;
+    claudePosition: string;
+    geminiPosition: string;
+    severity: 'low' | 'medium' | 'high';
+    resolved: boolean;
+    resolution?: string;
+}
+
 export interface WorkSession {
     id: string;
     name: string;
@@ -183,7 +194,7 @@ export interface ModelContribution {
 export interface ConsensusResult {
     achieved: boolean;
     points: string[];
-    disagreements: string[];
+    disagreements: (string | Disagreement)[];
     resolutions: string[];
 }
 
@@ -195,7 +206,6 @@ export class SessionManager {
     
     constructor(
         private _context: vscode.ExtensionContext,
-        private _memorySystem: any,
         private _projectIntelligence: any
     ) {
         this.sessionStoragePath = vscode.Uri.joinPath(

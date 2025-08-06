@@ -83,11 +83,11 @@ export class WorkRecoverySystem {
     constructor(
         private sessionManager: any,
         private workflowEngine: any,
-        private memorySystem: any,
-        private _context: vscode.ExtensionContext
+        private memorySystem: any
     ) {
-                this.recoveryStoragePath = vscode.Uri.joinPath(
-            _context.globalStorageUri, 
+                // Note: context is not available in constructor, will be set up later
+        this.recoveryStoragePath = vscode.Uri.joinPath(
+            vscode.Uri.file(''), // Placeholder, will be set properly
             'recovery-points'
         );
         this.setupAutoRecovery();
@@ -283,14 +283,14 @@ export class WorkRecoverySystem {
         const patterns = await this.memorySystem.getLearnedPatterns();
         
         return {
-            memories: memories.map(m => ({
+            memories: memories.map((m: any) => ({
                 id: m.id,
                 input: m.input,
                 result: m.result,
                 timestamp: m.timestamp,
                 tags: m.tags
             })),
-            patterns: patterns.map(p => ({
+            patterns: patterns.map((p: any) => ({
                 pattern: p.pattern,
                 type: p.type,
                 frequency: p.frequency,

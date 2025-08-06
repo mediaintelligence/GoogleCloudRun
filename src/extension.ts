@@ -140,7 +140,6 @@ class ClaudeGeminiAssistant {
         console.log('📋 Initializing Session Manager...');
         this.sessionManager = new SessionManager(
             this.extensionContext,
-            this.memorySystem,
             this.projectIntelligence
         );
         
@@ -154,16 +153,14 @@ class ClaudeGeminiAssistant {
         
         console.log('📚 Initializing History Tracker...');
         this.historyTracker = new HistoryTracker(
-            this.extensionContext,
-            this.sessionManager
+            this.extensionContext
         );
         
         console.log('🔄 Initializing Work Recovery System...');
         this.workRecoverySystem = new WorkRecoverySystem(
             this.sessionManager,
             this.workflowEngine,
-            this.memorySystem,
-            this.extensionContext
+            this.memorySystem
         );
     }
     

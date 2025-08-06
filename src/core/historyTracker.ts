@@ -82,8 +82,7 @@ export class HistoryTracker {
     private analytics: AnalyticsEngine;
     
     constructor(
-        private _context: vscode.ExtensionContext,
-        private _sessionManager: any
+        private _context: vscode.ExtensionContext
     ) {
         this.indexedHistory = this.createHistoryIndex();
         this.analytics = new AnalyticsEngine();
