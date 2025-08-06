@@ -194,12 +194,12 @@ export class SessionManager {
     private currentSessionId: string | null = null;
     
     constructor(
-        private context: vscode.ExtensionContext,
-        private memorySystem: any,
-        private projectIntelligence: any
+        private _context: vscode.ExtensionContext,
+        private _memorySystem: any,
+        private _projectIntelligence: any
     ) {
         this.sessionStoragePath = vscode.Uri.joinPath(
-            context.globalStorageUri, 
+            _context.globalStorageUri, 
             'sessions'
         );
         this.initializeSessionManager();
@@ -449,7 +449,7 @@ export class SessionManager {
     }
     
     private async captureProjectSnapshot(): Promise<ProjectSnapshot> {
-        const projectIntel = await this.projectIntelligence.getProjectIntelligence();
+        const projectIntel = await this._projectIntelligence.getProjectIntelligence();
         
         return {
             projectId: projectIntel?.projectId || '',
@@ -488,7 +488,7 @@ export class SessionManager {
         console.log(`🔄 Restoring project context for: ${snapshot.name}`);
     }
     
-    private async restoreMemoryState(snapshot: MemorySnapshot): Promise<void> {
+    private async restoreMemoryState(_snapshot: MemorySnapshot): Promise<void> {
         // Restore memory state from snapshot
         console.log(`🧠 Restoring memory state`);
     }

@@ -1696,7 +1696,7 @@ class ClaudeGeminiAssistant {
                     <p><strong>Achieved:</strong> ${execution.consensus.achieved ? 'Yes' : 'No'}</p>
                     <h3>Agreements:</h3>
                     <ul>
-                        ${execution.consensus.points.map(point => `<li>${point}</li>`).join('')}
+                        ${execution.consensus.points.map((point: string) => `<li>${point}</li>`).join('')}
                     </ul>
                     <h3>Final Output:</h3>
                     <pre>${execution.finalOutput}</pre>

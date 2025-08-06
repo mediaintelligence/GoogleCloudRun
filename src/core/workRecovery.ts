@@ -84,10 +84,10 @@ export class WorkRecoverySystem {
         private sessionManager: any,
         private workflowEngine: any,
         private memorySystem: any,
-        private context: vscode.ExtensionContext
+        private _context: vscode.ExtensionContext
     ) {
-        this.recoveryStoragePath = vscode.Uri.joinPath(
-            context.globalStorageUri,
+                this.recoveryStoragePath = vscode.Uri.joinPath(
+            _context.globalStorageUri, 
             'recovery-points'
         );
         this.setupAutoRecovery();
@@ -304,58 +304,55 @@ export class WorkRecoverySystem {
     private async captureEditorStates(): Promise<EditorState[]> {
         const editorStates: EditorState[] = [];
         
-        // Capture all open editors
-        for (const tabGroup of vscode.window.tabGroups) {
-            for (const tab of tabGroup.tabs) {
-                if (tab.input && 'uri' in tab.input) {
-                    const uri = tab.input.uri;
-                    if (uri.scheme === 'file') {
-                        try {
-                            const document = await vscode.workspace.openTextDocument(uri);
-                            const editor = vscode.window.activeTextEditor;
-                            
-                            editorStates.push({
-                                filePath: uri.fsPath,
-                                content: document.getText(),
-                                selections: editor?.selections ? [...editor.selections] : [],
-                                scrollPosition: { line: 0, character: 0 },
-                                isActive: editor?.document.uri.fsPath === uri.fsPath
-                            });
-                        } catch (error) {
-                            console.error('Failed to capture editor state:', error);
-                        }
-                    }
-                }
+        // Simplified approach - just capture active editor
+        try {
+            const activeEditor = vscode.window.activeTextEditor;
+            if (activeEditor && activeEditor.document.uri.scheme === 'file') {
+                editorStates.push({
+                    filePath: activeEditor.document.uri.fsPath,
+                    content: activeEditor.document.getText(),
+                    selections: [...activeEditor.selections],
+                    scrollPosition: { line: 0, character: 0 },
+                    isActive: true
+                });
             }
+        } catch (error) {
+            console.error('Failed to capture editor state:', error);
         }
         
         return editorStates;
     }
     
     private captureOpenFiles(): string[] {
-        return Array.from(vscode.window.tabGroups).flatMap(g => 
-            g.tabs.map(t => (t.input as any)?.uri?.fsPath).filter(Boolean)
-        );
+        const openFiles: string[] = [];
+        try {
+            // Simplified approach - just capture active editor
+            const activeEditor = vscode.window.activeTextEditor;
+            if (activeEditor && activeEditor.document.uri.scheme === 'file') {
+                openFiles.push(activeEditor.document.uri.fsPath);
+            }
+        } catch (error) {
+            console.error('Failed to capture open files:', error);
+        }
+        return openFiles;
     }
     
     private captureCursorPositions(): CursorPosition[] {
         const positions: CursorPosition[] = [];
         
-        for (const tabGroup of Array.from(vscode.window.tabGroups)) {
-            for (const tab of tabGroup.tabs) {
-                if (tab.input && 'uri' in tab.input) {
-                    const uri = tab.input.uri;
-                    if (uri.scheme === 'file') {
-                        // Note: Getting cursor position for non-active editors is complex
-                        // This is a simplified version
-                        positions.push({
-                            filePath: uri.fsPath,
-                            line: 0,
-                            character: 0
-                        });
-                    }
-                }
+        try {
+            // Simplified approach - just capture active editor cursor
+            const activeEditor = vscode.window.activeTextEditor;
+            if (activeEditor && activeEditor.document.uri.scheme === 'file') {
+                const selection = activeEditor.selection;
+                positions.push({
+                    filePath: activeEditor.document.uri.fsPath,
+                    line: selection.active.line,
+                    character: selection.active.character
+                });
             }
+        } catch (error) {
+            console.error('Failed to capture cursor positions:', error);
         }
         
         return positions;
@@ -405,12 +402,12 @@ export class WorkRecoverySystem {
         try {
             // Restore memories
             for (const memory of memoryState.memories) {
-                await this.memorySystem.recordExecution(memory);
+                await this.memorySystem.recordExecution(memory as any);
             }
             
             // Restore patterns
             for (const pattern of memoryState.patterns) {
-                await this.memorySystem.recordPattern(pattern);
+                await this.memorySystem.recordPattern(pattern as any);
             }
             
             console.log(`🧠 Restored ${memoryState.memories.length} memories and ${memoryState.patterns.length} patterns`);

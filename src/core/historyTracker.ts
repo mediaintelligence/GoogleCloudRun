@@ -82,8 +82,8 @@ export class HistoryTracker {
     private analytics: AnalyticsEngine;
     
     constructor(
-        private context: vscode.ExtensionContext,
-        private sessionManager: any
+        private _context: vscode.ExtensionContext,
+        private _sessionManager: any
     ) {
         this.indexedHistory = this.createHistoryIndex();
         this.analytics = new AnalyticsEngine();
@@ -273,7 +273,7 @@ export class HistoryTracker {
                 }
             },
             
-            async searchSimilar(task: string, context: any, limit: number): Promise<HistoryEntry[]> {
+            async searchSimilar(task: string, _context: any, limit: number): Promise<HistoryEntry[]> {
                 // Simple similarity search - in practice, this would use embeddings
                 const results: HistoryEntry[] = [];
                 const taskLower = task.toLowerCase();
@@ -296,40 +296,7 @@ export class HistoryTracker {
         return index;
     }
     
-    private async indexEntry(entry: HistoryEntry): Promise<void> {
-        // Index by type
-        if (!this.indexedHistory.byType.has(entry.type)) {
-            this.indexedHistory.byType.set(entry.type, []);
-        }
-        this.indexedHistory.byType.get(entry.type)!.push(entry);
-        
-        // Index by model
-        if (!this.indexedHistory.byModel.has(entry.model)) {
-            this.indexedHistory.byModel.set(entry.model, []);
-        }
-        this.indexedHistory.byModel.get(entry.model)!.push(entry);
-        
-        // Index by session
-        if (!this.indexedHistory.bySession.has(entry.sessionId)) {
-            this.indexedHistory.bySession.set(entry.sessionId, []);
-        }
-        this.indexedHistory.bySession.get(entry.sessionId)!.push(entry);
-        
-        // Index by date (daily)
-        const dateKey = entry.timestamp.toISOString().split('T')[0];
-        if (!this.indexedHistory.byDate.has(dateKey)) {
-            this.indexedHistory.byDate.set(dateKey, []);
-        }
-        this.indexedHistory.byDate.get(dateKey)!.push(entry);
-        
-        // Index by patterns
-        for (const pattern of entry.patternsIdentified) {
-            if (!this.indexedHistory.byPattern.has(pattern)) {
-                this.indexedHistory.byPattern.set(pattern, []);
-            }
-            this.indexedHistory.byPattern.get(pattern)!.push(entry);
-        }
-    }
+
     
     private async calculateSuccessMetrics(entry: HistoryEntry): Promise<SuccessMetrics> {
         // Calculate metrics based on entry type and content
@@ -587,7 +554,7 @@ export class HistoryTracker {
     private async loadHistoryDatabase(): Promise<void> {
         try {
             const historyPath = vscode.Uri.joinPath(
-                this.context.globalStorageUri,
+                this._context.globalStorageUri,
                 'history'
             );
             
@@ -619,7 +586,7 @@ export class HistoryTracker {
     private async saveEntry(entry: HistoryEntry): Promise<void> {
         try {
             const historyPath = vscode.Uri.joinPath(
-                this.context.globalStorageUri,
+                this._context.globalStorageUri,
                 'history'
             );
             

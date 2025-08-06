@@ -1,9 +1,7 @@
-import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
 import { 
     CollaborativeExecution, 
     CollaborationPhase, 
-    ModelContribution, 
     ConsensusResult
 } from './sessionManager';
 
@@ -110,26 +108,25 @@ export class CollaborativeExecutor {
         
         switch (phase.type) {
             case 'parallel_analysis':
-                await this.executeParallelAnalysis(execution, phase, context);
+                await this.executeParallelAnalysis(execution, context);
                 break;
                 
             case 'sequential_refinement':
-                await this.executeSequentialRefinement(execution, phase, context);
+                await this.executeSequentialRefinement(execution, context);
                 break;
                 
             case 'debate':
-                await this.executeDebate(execution, phase, context);
+                await this.executeDebate(execution, context);
                 break;
                 
             case 'synthesis':
-                await this.executeSynthesis(execution, phase, context);
+                await this.executeSynthesis(execution, context);
                 break;
         }
     }
     
     private async executeParallelAnalysis(
         execution: CollaborativeExecution,
-        phase: CollaborationPhase,
         context: any
     ): Promise<void> {
         // Both models analyze the problem independently
@@ -139,14 +136,14 @@ export class CollaborativeExecutor {
         ]);
         
         execution.claudeContributions.push({
-            phase: phase.name,
+            phase: 'Parallel Analysis',
             content: claudeAnalysis.output,
             timestamp: new Date(),
             confidence: claudeAnalysis.confidence || 0.8
         });
         
         execution.geminiContributions.push({
-            phase: phase.name,
+            phase: 'Parallel Analysis',
             content: geminiAnalysis.output,
             timestamp: new Date(),
             confidence: geminiAnalysis.confidence || 0.8
@@ -165,14 +162,13 @@ export class CollaborativeExecutor {
     
     private async executeSequentialRefinement(
         execution: CollaborativeExecution,
-        phase: CollaborationPhase,
         context: any
     ): Promise<void> {
         // Claude provides initial analysis
         const claudeAnalysis = await this.claudeInterface.analyze(execution.task, context);
         
         execution.claudeContributions.push({
-            phase: phase.name,
+            phase: 'Sequential Refinement',
             content: claudeAnalysis.output,
             timestamp: new Date(),
             confidence: claudeAnalysis.confidence || 0.8
@@ -188,7 +184,7 @@ export class CollaborativeExecutor {
         const geminiRefinement = await this.geminiInterface.analyze(execution.task, refinementContext);
         
         execution.geminiContributions.push({
-            phase: phase.name,
+            phase: 'Sequential Refinement',
             content: geminiRefinement.output,
             timestamp: new Date(),
             confidence: geminiRefinement.confidence || 0.8
@@ -197,33 +193,32 @@ export class CollaborativeExecutor {
     
     private async executeDebate(
         execution: CollaborativeExecution,
-        phase: CollaborationPhase,
         context: any
     ): Promise<void> {
         // Models debate on disagreements
         for (const disagreement of execution.consensus.disagreements) {
             if (typeof disagreement === 'string') continue;
-            if (!disagreement.resolved) {
+            const dis = disagreement as any;
+            if (!dis.resolved) {
                 const debate = await this.facilitateDebate(
-                    disagreement,
+                    dis,
                     execution,
                     context
                 );
                 
                 execution.consensus.resolutions.push(debate.resolution.approach);
-                disagreement.resolved = true;
+                dis.resolved = true;
             }
         }
     }
     
     private async executeSynthesis(
         execution: CollaborativeExecution,
-        phase: CollaborationPhase,
-        context: any
+        _context: any
     ): Promise<void> {
         // Combine all contributions into final synthesis
         const synthesisContext = {
-            ...context,
+            ..._context,
             claudeContributions: execution.claudeContributions,
             geminiContributions: execution.geminiContributions,
             agreements: execution.consensus.points,
@@ -238,7 +233,7 @@ export class CollaborativeExecutor {
     
     private async facilitateDebate(
         disagreement: Disagreement,
-        execution: CollaborativeExecution,
+        _execution: CollaborativeExecution,
         context: any
     ): Promise<{ resolution: Resolution }> {
         // Have models explain their reasoning
@@ -420,15 +415,15 @@ export class CollaborativeExecutor {
     }
     
     private assignCompetitiveRole(
-        model: 'claude' | 'gemini',
-        taskType: string
+        _model: 'claude' | 'gemini',
+        _taskType: string
     ): string {
         return 'analyzer'; // Both models analyze independently
     }
     
     private assignConsensusRole(
-        model: 'claude' | 'gemini',
-        taskType: string
+        _model: 'claude' | 'gemini',
+        _taskType: string
     ): string {
         return 'advisor'; // Both models provide advice for consensus
     }
@@ -469,7 +464,7 @@ export class CollaborativeExecutor {
     private async buildConsensus(execution: CollaborativeExecution): Promise<ConsensusResult> {
         const agreements = execution.consensus.points;
         const disagreements = execution.consensus.disagreements.filter(d => 
-            typeof d !== 'string' && !d.resolved
+            typeof d !== 'string' && !(d as any).resolved
         );
         const resolutions = execution.consensus.resolutions;
         
