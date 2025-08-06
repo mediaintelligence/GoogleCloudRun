@@ -205,11 +205,11 @@ export class SessionManager {
     private currentSessionId: string | null = null;
     
     constructor(
-        private _context: vscode.ExtensionContext,
+        context: vscode.ExtensionContext,
         private _projectIntelligence: any
     ) {
         this.sessionStoragePath = vscode.Uri.joinPath(
-            _context.globalStorageUri, 
+            context.globalStorageUri, 
             'sessions'
         );
         this.initializeSessionManager();

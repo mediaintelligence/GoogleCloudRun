@@ -405,6 +405,10 @@
     "package": "webpack --mode production --devtool hidden-source-map",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:comprehensive": "./tests/run-tests.sh",
+    "test:unit": "jest",
+    "test:integration": "npm run compile && npm test",
+    "test:all": "npm run test:comprehensive && npm run test:unit",
     "lint": "eslint src --ext ts",
     "clean": "rimraf dist",
     "deploy": "vsce publish",
@@ -412,6 +416,7 @@
     "launch:cursor": "cursor --extensionDevelopmentPath=."
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "20.x",
     "@types/uuid": "^10.0.0",
     "@types/vscode": "^1.85.0",
