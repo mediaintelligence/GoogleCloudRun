@@ -8,6 +8,12 @@ import { MemorySystem } from './core/memorySystem';
 import { GeminiWorkflowEngine } from './core/geminiWorkflow';
 import { ClaudeCodeInterface } from './core/claudeCodeInterface';
 
+// Enhanced systems imports
+import { SessionManager } from './core/sessionManager';
+import { CollaborativeExecutor } from './core/collaborativeExecutor';
+import { HistoryTracker } from './core/historyTracker';
+import { WorkRecoverySystem } from './core/workRecovery';
+
 // Intelligent systems imports
 import { IntelligentTriggers } from './hooks/intelligentTriggers';
 import { MemoryAwareHook } from './hooks/memoryAwareHook';
@@ -42,6 +48,13 @@ class ClaudeGeminiAssistant {
     private memorySystem!: MemorySystem;
     private workflowEngine!: GeminiWorkflowEngine;
     private claudeCodeInterface!: ClaudeCodeInterface;
+    
+    // Enhanced systems
+    private sessionManager!: SessionManager;
+    private collaborativeExecutor!: CollaborativeExecutor;
+    private historyTracker!: HistoryTracker;
+    private workRecoverySystem!: WorkRecoverySystem;
+    
     // Intelligent systems
     private intelligentTriggers!: IntelligentTriggers;
     private memoryAwareHook!: MemoryAwareHook;
@@ -123,6 +136,35 @@ class ClaudeGeminiAssistant {
         
         console.log('🏗️ Initializing Gemini Workflow Engine...');
         this.workflowEngine = new GeminiWorkflowEngine();
+        
+        console.log('📋 Initializing Session Manager...');
+        this.sessionManager = new SessionManager(
+            this.extensionContext,
+            this.memorySystem,
+            this.projectIntelligence
+        );
+        
+        console.log('🤝 Initializing Collaborative Executor...');
+        this.collaborativeExecutor = new CollaborativeExecutor(
+            this.claudeCodeInterface,
+            this.workflowEngine, // Using workflow engine as Gemini interface for now
+            this.workflowEngine, // Using workflow engine as boss agent for now
+            this.sessionManager
+        );
+        
+        console.log('📚 Initializing History Tracker...');
+        this.historyTracker = new HistoryTracker(
+            this.extensionContext,
+            this.sessionManager
+        );
+        
+        console.log('🔄 Initializing Work Recovery System...');
+        this.workRecoverySystem = new WorkRecoverySystem(
+            this.sessionManager,
+            this.workflowEngine,
+            this.memorySystem,
+            this.extensionContext
+        );
     }
     
     /**
@@ -131,7 +173,7 @@ class ClaudeGeminiAssistant {
     private async initializeIntelligentSystems(): Promise<void> {
         console.log('🧩 Initializing Intelligent Triggers System...');
         this.intelligentTriggers = new IntelligentTriggers(
-            this.projectIntelligence
+            this.projectIntelligence.getProjectIntelligenceInstance()
         );
 
         console.log('🧠 Initializing Memory-Aware Hook System...');
@@ -235,6 +277,52 @@ class ClaudeGeminiAssistant {
             {
                 id: 'claude-assistant.generateTests',
                 handler: () => this.handleGenerateTests()
+            },
+            
+            // Session management commands
+            {
+                id: 'claude-assistant.createSession',
+                handler: () => this.handleCreateSession()
+            },
+            {
+                id: 'claude-assistant.resumeSession',
+                handler: () => this.handleResumeSession()
+            },
+            {
+                id: 'claude-assistant.saveSession',
+                handler: () => this.handleSaveSession()
+            },
+            {
+                id: 'claude-assistant.viewSessionHistory',
+                handler: () => this.handleViewSessionHistory()
+            },
+            
+            // Collaboration commands
+            {
+                id: 'claude-assistant.startCollaboration',
+                handler: () => this.handleStartCollaboration()
+            },
+            {
+                id: 'claude-assistant.collaborativeDebug',
+                handler: () => this.handleCollaborativeDebug()
+            },
+            {
+                id: 'claude-assistant.collaborativeRefactor',
+                handler: () => this.handleCollaborativeRefactor()
+            },
+            {
+                id: 'claude-assistant.compareApproaches',
+                handler: () => this.handleCompareApproaches()
+            },
+            
+            // Recovery commands
+            {
+                id: 'claude-assistant.createRecoveryPoint',
+                handler: () => this.handleCreateRecoveryPoint()
+            },
+            {
+                id: 'claude-assistant.restoreFromRecovery',
+                handler: () => this.handleRestoreFromRecovery()
             },
             
             // Information and configuration commands
@@ -1171,6 +1259,593 @@ class ClaudeGeminiAssistant {
         };
     }
     
+    // Enhanced Session Management Handlers
+    
+    private async handleCreateSession(): Promise<void> {
+        try {
+            const name = await vscode.window.showInputBox({
+                prompt: 'Enter session name',
+                placeHolder: 'e.g., Feature Development Session'
+            });
+            
+            if (!name) return;
+            
+            const description = await vscode.window.showInputBox({
+                prompt: 'Enter session description',
+                placeHolder: 'Describe what you plan to work on...'
+            });
+            
+            if (!description) return;
+            
+            const session = await this.sessionManager.createSession(name, description);
+            
+            vscode.window.showInformationMessage(
+                `Session "${session.name}" created successfully!`
+            );
+            
+        } catch (error) {
+            console.error('Error creating session:', error);
+            vscode.window.showErrorMessage(`Failed to create session: ${error}`);
+        }
+    }
+    
+    private async handleResumeSession(): Promise<void> {
+        try {
+            const sessions = await this.sessionManager.getAllSessions();
+            
+            if (sessions.length === 0) {
+                vscode.window.showInformationMessage('No saved sessions found');
+                return;
+            }
+            
+            const sessionOptions = sessions.map(session => ({
+                label: session.name,
+                description: session.description,
+                detail: `Last accessed: ${session.lastAccessedAt.toLocaleString()}`,
+                value: session.id
+            }));
+            
+            const selectedSession = await vscode.window.showQuickPick(sessionOptions, {
+                placeHolder: 'Select session to resume'
+            });
+            
+            if (!selectedSession) return;
+            
+            await this.sessionManager.resumeSession(selectedSession.value);
+            
+        } catch (error) {
+            console.error('Error resuming session:', error);
+            vscode.window.showErrorMessage(`Failed to resume session: ${error}`);
+        }
+    }
+    
+    private async handleSaveSession(): Promise<void> {
+        try {
+            const currentSession = await this.sessionManager.getCurrentSession();
+            if (!currentSession) {
+                vscode.window.showWarningMessage('No active session to save');
+                return;
+            }
+            
+            await this.sessionManager.saveSession(currentSession);
+            vscode.window.showInformationMessage('Session saved successfully!');
+            
+        } catch (error) {
+            console.error('Error saving session:', error);
+            vscode.window.showErrorMessage(`Failed to save session: ${error}`);
+        }
+    }
+    
+    private async handleViewSessionHistory(): Promise<void> {
+        try {
+            const currentSession = await this.sessionManager.getCurrentSession();
+            if (!currentSession) {
+                vscode.window.showWarningMessage('No active session');
+                return;
+            }
+            
+            const insights = await this.historyTracker.generateInsights(currentSession.id);
+            
+            // Show insights in a webview
+            const panel = vscode.window.createWebviewPanel(
+                'sessionHistory',
+                'Session History & Insights',
+                vscode.ViewColumn.One,
+                { enableScripts: true }
+            );
+            
+            panel.webview.html = this.getSessionHistoryHtml(currentSession, insights);
+            
+        } catch (error) {
+            console.error('Error viewing session history:', error);
+            vscode.window.showErrorMessage(`Failed to view session history: ${error}`);
+        }
+    }
+    
+    // Enhanced Collaboration Handlers
+    
+    private async handleStartCollaboration(): Promise<void> {
+        try {
+            const task = await vscode.window.showInputBox({
+                prompt: 'What would you like Claude and Gemini to collaborate on?',
+                placeHolder: 'e.g., Design a new API endpoint, Debug this complex issue'
+            });
+            
+            if (!task) return;
+            
+            const currentSession = await this.sessionManager.getCurrentSession();
+            if (!currentSession) {
+                vscode.window.showWarningMessage('Please create or resume a session first');
+                return;
+            }
+            
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: "Starting Claude-Gemini Collaboration...",
+                cancellable: false
+            }, async (progress) => {
+                progress.report({ increment: 0, message: "Initializing collaboration..." });
+                
+                const execution = await this.collaborativeExecutor.executeCollaboratively(
+                    task,
+                    { sessionId: currentSession.id },
+                    { type: 'complementary', description: 'Claude analyzes, Gemini implements', phaseSequence: [] }
+                );
+                
+                progress.report({ increment: 100, message: "Collaboration complete!" });
+                
+                // Show results
+                const panel = vscode.window.createWebviewPanel(
+                    'collaborationResults',
+                    'Collaboration Results',
+                    vscode.ViewColumn.Beside,
+                    { enableScripts: true }
+                );
+                
+                panel.webview.html = this.getCollaborationResultsHtml(execution);
+            });
+            
+        } catch (error) {
+            console.error('Error starting collaboration:', error);
+            vscode.window.showErrorMessage(`Collaboration failed: ${error}`);
+        }
+    }
+    
+    private async handleCollaborativeDebug(): Promise<void> {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active editor found');
+            return;
+        }
+        
+        const selectedCode = editor.selection.isEmpty 
+            ? editor.document.getText() 
+            : editor.document.getText(editor.selection);
+        
+        const task = `Debug this code:\n\n${selectedCode}`;
+        
+        try {
+            const currentSession = await this.sessionManager.getCurrentSession();
+            if (!currentSession) {
+                vscode.window.showWarningMessage('Please create or resume a session first');
+                return;
+            }
+            
+            const execution = await this.collaborativeExecutor.executeCollaboratively(
+                task,
+                { sessionId: currentSession.id, filePath: editor.document.uri.fsPath },
+                { type: 'complementary', description: 'Claude analyzes, Gemini debugs', phaseSequence: [] }
+            );
+            
+            // Show debug results
+            const panel = vscode.window.createWebviewPanel(
+                'collaborativeDebug',
+                'Collaborative Debug Results',
+                vscode.ViewColumn.Beside,
+                { enableScripts: true }
+            );
+            
+            panel.webview.html = this.getCollaborativeDebugHtml(execution);
+            
+        } catch (error) {
+            console.error('Error in collaborative debug:', error);
+            vscode.window.showErrorMessage(`Collaborative debug failed: ${error}`);
+        }
+    }
+    
+    private async handleCollaborativeRefactor(): Promise<void> {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || editor.selection.isEmpty) {
+            vscode.window.showErrorMessage('Please select code to refactor');
+            return;
+        }
+        
+        const selectedCode = editor.document.getText(editor.selection);
+        const task = `Refactor this code for better quality:\n\n${selectedCode}`;
+        
+        try {
+            const currentSession = await this.sessionManager.getCurrentSession();
+            if (!currentSession) {
+                vscode.window.showWarningMessage('Please create or resume a session first');
+                return;
+            }
+            
+            const execution = await this.collaborativeExecutor.executeCollaboratively(
+                task,
+                { sessionId: currentSession.id, filePath: editor.document.uri.fsPath },
+                { type: 'complementary', description: 'Claude reviews, Gemini refactors', phaseSequence: [] }
+            );
+            
+            // Show refactor results
+            const panel = vscode.window.createWebviewPanel(
+                'collaborativeRefactor',
+                'Collaborative Refactor Results',
+                vscode.ViewColumn.Beside,
+                { enableScripts: true }
+            );
+            
+            panel.webview.html = this.getCollaborativeRefactorHtml(execution);
+            
+        } catch (error) {
+            console.error('Error in collaborative refactor:', error);
+            vscode.window.showErrorMessage(`Collaborative refactor failed: ${error}`);
+        }
+    }
+    
+    private async handleCompareApproaches(): Promise<void> {
+        const task = await vscode.window.showInputBox({
+            prompt: 'What would you like to compare approaches for?',
+            placeHolder: 'e.g., Implement user authentication, Optimize database queries'
+        });
+        
+        if (!task) return;
+        
+        try {
+            const currentSession = await this.sessionManager.getCurrentSession();
+            if (!currentSession) {
+                vscode.window.showWarningMessage('Please create or resume a session first');
+                return;
+            }
+            
+            const execution = await this.collaborativeExecutor.executeCollaboratively(
+                task,
+                { sessionId: currentSession.id },
+                { type: 'competitive', description: 'Both models provide different approaches', phaseSequence: [] }
+            );
+            
+            // Show comparison results
+            const panel = vscode.window.createWebviewPanel(
+                'approachComparison',
+                'Approach Comparison',
+                vscode.ViewColumn.Beside,
+                { enableScripts: true }
+            );
+            
+            panel.webview.html = this.getApproachComparisonHtml(execution);
+            
+        } catch (error) {
+            console.error('Error comparing approaches:', error);
+            vscode.window.showErrorMessage(`Approach comparison failed: ${error}`);
+        }
+    }
+    
+    // Enhanced Recovery Handlers
+    
+    private async handleCreateRecoveryPoint(): Promise<void> {
+        try {
+            const currentSession = await this.sessionManager.getCurrentSession();
+            if (!currentSession) {
+                vscode.window.showWarningMessage('No active session');
+                return;
+            }
+            
+            const description = await vscode.window.showInputBox({
+                prompt: 'Enter description for recovery point',
+                placeHolder: 'e.g., Before major refactor, After feature completion'
+            });
+            
+            if (!description) return;
+            
+            await this.workRecoverySystem.createRecoveryPoint(
+                currentSession.id,
+                description
+            );
+            
+            vscode.window.showInformationMessage('Recovery point created successfully!');
+            
+        } catch (error) {
+            console.error('Error creating recovery point:', error);
+            vscode.window.showErrorMessage(`Failed to create recovery point: ${error}`);
+        }
+    }
+    
+    private async handleRestoreFromRecovery(): Promise<void> {
+        try {
+            const currentSession = await this.sessionManager.getCurrentSession();
+            if (!currentSession) {
+                vscode.window.showWarningMessage('No active session');
+                return;
+            }
+            
+            const recoveryPoints = await this.workRecoverySystem.getRecoveryPoints(currentSession.id);
+            
+            if (recoveryPoints.length === 0) {
+                vscode.window.showInformationMessage('No recovery points found for this session');
+                return;
+            }
+            
+            const pointOptions = recoveryPoints.map(point => ({
+                label: point.description,
+                description: point.timestamp.toLocaleString(),
+                value: point.id
+            }));
+            
+            const selectedPoint = await vscode.window.showQuickPick(pointOptions, {
+                placeHolder: 'Select recovery point to restore from'
+            });
+            
+            if (!selectedPoint) return;
+            
+            await this.workRecoverySystem.restoreFromPoint(selectedPoint.value);
+            
+        } catch (error) {
+            console.error('Error restoring from recovery point:', error);
+            vscode.window.showErrorMessage(`Failed to restore from recovery point: ${error}`);
+        }
+    }
+    
+    // Helper methods for webview content
+    private getSessionHistoryHtml(session: any, insights: any): string {
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Session History</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 20px; }
+                    .session-header { margin-bottom: 30px; }
+                    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+                    .metric-card { background: var(--vscode-editor-background); padding: 15px; border-radius: 8px; border: 1px solid var(--vscode-panel-border); }
+                    .recommendations { background: var(--vscode-input-background); padding: 15px; border-radius: 8px; margin-top: 20px; }
+                </style>
+            </head>
+            <body>
+                <div class="session-header">
+                    <h1>${session.name}</h1>
+                    <p>${session.description}</p>
+                    <small>Created: ${session.createdAt.toLocaleString()}</small>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <h3>Total Executions</h3>
+                        <div class="metric-value">${insights.totalExecutions}</div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Success Rate</h3>
+                        <div class="metric-value">${(insights.successRate * 100).toFixed(1)}%</div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Average Time</h3>
+                        <div class="metric-value">${Math.round(insights.averageExecutionTime / 1000)}s</div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Total Cost</h3>
+                        <div class="metric-value">$${insights.totalCost.toFixed(4)}</div>
+                    </div>
+                </div>
+                
+                <div class="recommendations">
+                    <h3>Recommendations</h3>
+                    <ul>
+                        ${insights.recommendations.map((rec: string) => `<li>${rec}</li>`).join('')}
+                    </ul>
+                </div>
+            </body>
+            </html>
+        `;
+    }
+    
+    private getCollaborationResultsHtml(execution: any): string {
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Collaboration Results</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 20px; }
+                    .collaboration-header { margin-bottom: 30px; }
+                    .contributions { margin-bottom: 30px; }
+                    .contribution { background: var(--vscode-editor-background); padding: 15px; margin: 10px 0; border-radius: 8px; }
+                    .consensus { background: var(--vscode-input-background); padding: 15px; border-radius: 8px; }
+                </style>
+            </head>
+            <body>
+                <div class="collaboration-header">
+                    <h1>🤝 Collaboration Results</h1>
+                    <p><strong>Task:</strong> ${execution.task}</p>
+                    <p><strong>Confidence Score:</strong> ${(execution.confidenceScore * 100).toFixed(1)}%</p>
+                </div>
+                
+                <div class="contributions">
+                    <h2>Claude Contributions</h2>
+                    ${execution.claudeContributions.map((c: any) => `
+                        <div class="contribution">
+                            <h4>${c.phase}</h4>
+                            <p>${c.content}</p>
+                            <small>Confidence: ${(c.confidence * 100).toFixed(1)}%</small>
+                        </div>
+                    `).join('')}
+                    
+                    <h2>Gemini Contributions</h2>
+                    ${execution.geminiContributions.map((c: any) => `
+                        <div class="contribution">
+                            <h4>${c.phase}</h4>
+                            <p>${c.content}</p>
+                            <small>Confidence: ${(c.confidence * 100).toFixed(1)}%</small>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="consensus">
+                    <h2>Final Consensus</h2>
+                    <p><strong>Achieved:</strong> ${execution.consensus.achieved ? 'Yes' : 'No'}</p>
+                    <h3>Agreements:</h3>
+                    <ul>
+                        ${execution.consensus.points.map(point => `<li>${point}</li>`).join('')}
+                    </ul>
+                    <h3>Final Output:</h3>
+                    <pre>${execution.finalOutput}</pre>
+                </div>
+            </body>
+            </html>
+        `;
+    }
+    
+    private getCollaborativeDebugHtml(execution: any): string {
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Collaborative Debug Results</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 20px; }
+                    .debug-results { background: var(--vscode-editor-background); padding: 20px; border-radius: 8px; }
+                    .error-analysis { background: #fff0f0; padding: 15px; margin: 10px 0; border-radius: 8px; }
+                    .solution { background: #f0fff0; padding: 15px; margin: 10px 0; border-radius: 8px; }
+                </style>
+            </head>
+            <body>
+                <h1>🔍 Collaborative Debug Results</h1>
+                <div class="debug-results">
+                    <h2>Analysis</h2>
+                    ${execution.claudeContributions.map((c: any) => `
+                        <div class="error-analysis">
+                            <h4>${c.phase}</h4>
+                            <p>${c.content}</p>
+                        </div>
+                    `).join('')}
+                    
+                    <h2>Solution</h2>
+                    ${execution.geminiContributions.map((c: any) => `
+                        <div class="solution">
+                            <h4>${c.phase}</h4>
+                            <p>${c.content}</p>
+                        </div>
+                    `).join('')}
+                    
+                    <h2>Final Debug Output</h2>
+                    <pre>${execution.finalOutput}</pre>
+                </div>
+            </body>
+            </html>
+        `;
+    }
+    
+    private getCollaborativeRefactorHtml(execution: any): string {
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Collaborative Refactor Results</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 20px; }
+                    .refactor-results { background: var(--vscode-editor-background); padding: 20px; border-radius: 8px; }
+                    .review { background: #fff8f0; padding: 15px; margin: 10px 0; border-radius: 8px; }
+                    .refactored { background: #f0fff0; padding: 15px; margin: 10px 0; border-radius: 8px; }
+                </style>
+            </head>
+            <body>
+                <h1>🔄 Collaborative Refactor Results</h1>
+                <div class="refactor-results">
+                    <h2>Code Review</h2>
+                    ${execution.claudeContributions.map((c: any) => `
+                        <div class="review">
+                            <h4>${c.phase}</h4>
+                            <p>${c.content}</p>
+                        </div>
+                    `).join('')}
+                    
+                    <h2>Refactored Code</h2>
+                    ${execution.geminiContributions.map((c: any) => `
+                        <div class="refactored">
+                            <h4>${c.phase}</h4>
+                            <pre>${c.content}</pre>
+                        </div>
+                    `).join('')}
+                    
+                    <h2>Final Refactored Output</h2>
+                    <pre>${execution.finalOutput}</pre>
+                </div>
+            </body>
+            </html>
+        `;
+    }
+    
+    private getApproachComparisonHtml(execution: any): string {
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Approach Comparison</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 20px; }
+                    .comparison { background: var(--vscode-editor-background); padding: 20px; border-radius: 8px; }
+                    .approach { background: var(--vscode-input-background); padding: 15px; margin: 10px 0; border-radius: 8px; }
+                    .claude-approach { border-left: 4px solid #0066cc; }
+                    .gemini-approach { border-left: 4px solid #1a73e8; }
+                </style>
+            </head>
+            <body>
+                <h1>⚖️ Approach Comparison</h1>
+                <div class="comparison">
+                    <h2>Claude's Approach</h2>
+                    ${execution.claudeContributions.map((c: any) => `
+                        <div class="approach claude-approach">
+                            <h4>${c.phase}</h4>
+                            <p>${c.content}</p>
+                        </div>
+                    `).join('')}
+                    
+                    <h2>Gemini's Approach</h2>
+                    ${execution.geminiContributions.map((c: any) => `
+                        <div class="approach gemini-approach">
+                            <h4>${c.phase}</h4>
+                            <p>${c.content}</p>
+                        </div>
+                    `).join('')}
+                    
+                    <h2>Comparison Analysis</h2>
+                    <div class="approach">
+                        <h4>Agreements</h4>
+                        <ul>
+                            ${execution.consensus.points.map((point: string) => `<li>${point}</li>`).join('')}
+                        </ul>
+                        
+                        <h4>Disagreements</h4>
+                        <ul>
+                            ${execution.consensus.disagreements.map((disagreement: string) => `<li>${disagreement}</li>`).join('')}
+                        </ul>
+                    </div>
+                    
+                    <h2>Final Recommendation</h2>
+                    <pre>${execution.finalOutput}</pre>
+                </div>
+            </body>
+            </html>
+        `;
+    }
+    
     /**
      * Cleanup method called when extension is deactivated
      */
@@ -1184,6 +1859,10 @@ class ClaudeGeminiAssistant {
         
         if (this.memoryAwareHook) {
             this.memoryAwareHook.dispose();
+        }
+        
+        if (this.workRecoverySystem) {
+            this.workRecoverySystem.dispose();
         }
         
         // Clear active workflows

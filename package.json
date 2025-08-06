@@ -134,6 +134,66 @@
         "title": "Clear Stored API Key",
         "category": "Claude Assistant",
         "icon": "$(trash)"
+      },
+      {
+        "command": "claude-assistant.createSession",
+        "title": "Create New Work Session",
+        "category": "Claude Assistant",
+        "icon": "$(add)"
+      },
+      {
+        "command": "claude-assistant.resumeSession",
+        "title": "Resume Previous Session",
+        "category": "Claude Assistant",
+        "icon": "$(play)"
+      },
+      {
+        "command": "claude-assistant.saveSession",
+        "title": "Save Current Session",
+        "category": "Claude Assistant",
+        "icon": "$(save)"
+      },
+      {
+        "command": "claude-assistant.viewSessionHistory",
+        "title": "View Session History",
+        "category": "Claude Assistant",
+        "icon": "$(history)"
+      },
+      {
+        "command": "claude-assistant.startCollaboration",
+        "title": "Start Claude-Gemini Collaboration",
+        "category": "Claude Assistant",
+        "icon": "$(group-by-ref-type)"
+      },
+      {
+        "command": "claude-assistant.collaborativeDebug",
+        "title": "Collaborative Debug (Both AIs)",
+        "category": "Claude Assistant",
+        "icon": "$(bug)"
+      },
+      {
+        "command": "claude-assistant.collaborativeRefactor",
+        "title": "Collaborative Refactor",
+        "category": "Claude Assistant",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "claude-assistant.compareApproaches",
+        "title": "Compare AI Approaches",
+        "category": "Claude Assistant",
+        "icon": "$(compare-changes)"
+      },
+      {
+        "command": "claude-assistant.createRecoveryPoint",
+        "title": "Create Recovery Point",
+        "category": "Claude Assistant",
+        "icon": "$(save-all)"
+      },
+      {
+        "command": "claude-assistant.restoreFromRecovery",
+        "title": "Restore from Recovery Point",
+        "category": "Claude Assistant",
+        "icon": "$(restore)"
       }
     ],
     "keybindings": [
@@ -271,6 +331,41 @@
           "minimum": 1,
           "maximum": 5,
           "description": "Maximum number of learned patterns to include in context"
+        },
+        "claude-assistant.sessions.autoSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically save work sessions"
+        },
+        "claude-assistant.sessions.autoSaveInterval": {
+          "type": "number",
+          "default": 30,
+          "description": "Auto-save interval in seconds"
+        },
+        "claude-assistant.sessions.maxRecoveryPoints": {
+          "type": "number",
+          "default": 10,
+          "description": "Maximum recovery points per session"
+        },
+        "claude-assistant.collaboration.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Claude-Gemini collaboration"
+        },
+        "claude-assistant.collaboration.strategy": {
+          "type": "string",
+          "enum": [
+            "complementary",
+            "competitive",
+            "consensus"
+          ],
+          "default": "complementary",
+          "description": "Collaboration strategy between models"
+        },
+        "claude-assistant.history.retentionDays": {
+          "type": "number",
+          "default": 90,
+          "description": "Days to retain execution history"
         }
       }
     },
@@ -318,6 +413,7 @@
   },
   "devDependencies": {
     "@types/node": "20.x",
+    "@types/uuid": "^10.0.0",
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
@@ -341,4 +437,3 @@
     "uuid": "^9.0.1"
   }
 }
-

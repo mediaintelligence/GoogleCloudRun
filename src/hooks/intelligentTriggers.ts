@@ -5,7 +5,7 @@ import {
     TriggerContext, 
     TriggerAction 
 } from '../types/interfaces';
-// import { ProjectIntelligence } from '../core/projectIntelligence';
+import { ProjectIntelligence } from '../core/projectIntelligence';
 import { ClaudeCodeInterface } from '../core/claudeCodeInterface';
 // import { GeminiWorkflowEngine } from '../core/geminiWorkflow';
 
@@ -19,7 +19,7 @@ export class IntelligentTriggers {
     // private geminiWorkflow: GeminiWorkflowEngine;
 
     constructor(
-        private _projectIntelligence: any
+        private _projectIntelligence: ProjectIntelligence
     ) {
         // Create instances needed for the existing code
         this.claudeInterface = new ClaudeCodeInterface();
