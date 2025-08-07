@@ -71,4 +71,4 @@ yarn.lock
 
 # Testing
 .jest/
-__tests__/coverage/
+__tests__/coverage/*.vsix
