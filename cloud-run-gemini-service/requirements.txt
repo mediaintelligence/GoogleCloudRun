@@ -1,0 +1,22 @@
+# Core dependencies
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+
+# Google Gemini AI
+google-generativeai==0.3.2
+google-cloud-aiplatform==1.39.0
+
+# Additional utilities
+python-multipart==0.0.6
+requests==2.31.0
+python-dotenv==1.0.0
+
+# Logging and monitoring
+python-json-logger==2.0.7
+
+# CORS support (included with FastAPI but explicit for clarity)
+starlette==0.35.1
+
+# Performance
+orjson==3.9.10

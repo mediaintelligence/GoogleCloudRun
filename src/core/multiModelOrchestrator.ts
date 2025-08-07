@@ -12,6 +12,7 @@ import {
     RoutingDecision 
 } from '../types/bossAgentTypes';
 import { LLMAdapter } from './adapters/llmAdapter';
+import { CloudRunBridge, OrchestrationRequest, OrchestrationResponse } from '../services/cloudRunBridge';
 
 class OrchestratorError extends Error {
     constructor(message: string, public readonly originalError?: any) {
@@ -36,12 +37,16 @@ export class MultiModelOrchestrator {
     private bossAgent: BossAgentRouter;
     private adapters: Map<ModelProvider, LLMAdapter> = new Map();
     private isInitialized: boolean = false;
+    private cloudRunBridge: CloudRunBridge;
+    private useCloudRun: boolean = false;
     
     constructor(
         private _memorySystem: MemorySystem,
         private _projectIntelligence: ProjectIntelligenceSystem
     ) {
         this.bossAgent = new BossAgentRouter();
+        this.cloudRunBridge = CloudRunBridge.getInstance();
+        this.checkCloudRunAvailability();
     }
     
     /**
@@ -77,6 +82,22 @@ export class MultiModelOrchestrator {
     }
     
     /**
+     * Check if Cloud Run services are available
+     */
+    private async checkCloudRunAvailability(): Promise<void> {
+        try {
+            const isHealthy = await this.cloudRunBridge.healthCheck();
+            this.useCloudRun = isHealthy;
+            if (isHealthy) {
+                console.log('✅ Cloud Run orchestration services available');
+            }
+        } catch (error) {
+            console.log('⚠️ Cloud Run services not available, using local processing');
+            this.useCloudRun = false;
+        }
+    }
+
+    /**
      * Main entry point for AI requests - replaces direct model calls
      */
     async processRequest(
@@ -89,6 +110,39 @@ export class MultiModelOrchestrator {
         }
         
         const startTime = Date.now();
+
+        // Try Cloud Run orchestration first if available
+        if (this.useCloudRun) {
+            try {
+                const orchRequest: OrchestrationRequest = {
+                    prompt,
+                    task_type: this.inferTaskType(prompt, context),
+                    collaboration_mode: options?.collaborationMode || 'specialized',
+                    context: context,
+                    max_tokens: options?.maxTokens || 2048,
+                    temperature: options?.temperature || 0.7
+                };
+
+                const cloudResponse = await this.cloudRunBridge.orchestrate(orchRequest);
+                
+                return {
+                    content: cloudResponse.primary_response,
+                    model: cloudResponse.model_used,
+                    confidence: cloudResponse.confidence_score,
+                    metadata: {
+                        ...cloudResponse.metadata,
+                        supporting_response: cloudResponse.supporting_response,
+                        collaboration_mode: cloudResponse.collaboration_mode,
+                        processing_time: Date.now() - startTime,
+                        cloud_run: true
+                    }
+                } as EnhancedResponse;
+            } catch (error) {
+                console.log('⚠️ Cloud Run failed, falling back to local processing');
+            }
+        }
+
+        // Fallback to local processing
         let request: LLMRequest;
         let routingDecision: RoutingDecision;
 
@@ -121,6 +175,34 @@ export class MultiModelOrchestrator {
             console.error('❌ Request execution failed across all models:', error);
             throw new OrchestratorError('All models failed to process the request', error);
         }
+    }
+
+    /**
+     * Infer task type from prompt and context
+     */
+    private inferTaskType(prompt: string, context?: any): OrchestrationRequest['task_type'] {
+        const lowerPrompt = prompt.toLowerCase();
+        
+        if (lowerPrompt.includes('code') || lowerPrompt.includes('function') || lowerPrompt.includes('implement')) {
+            return 'code';
+        }
+        if (lowerPrompt.includes('analyze') || lowerPrompt.includes('review')) {
+            return 'analysis';
+        }
+        if (lowerPrompt.includes('create') || lowerPrompt.includes('write')) {
+            return 'creative';
+        }
+        if (lowerPrompt.includes('translate')) {
+            return 'translation';
+        }
+        if (lowerPrompt.includes('summarize')) {
+            return 'summarization';
+        }
+        if (lowerPrompt.includes('why') || lowerPrompt.includes('explain')) {
+            return 'reasoning';
+        }
+        
+        return 'generation';
     }
     
     /**

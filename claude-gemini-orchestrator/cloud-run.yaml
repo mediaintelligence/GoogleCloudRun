@@ -1,0 +1,83 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: claude-gemini-orchestrator
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/launch-stage: GA
+spec:
+  template:
+    metadata:
+      annotations:
+        # Maximum number of instances
+        autoscaling.knative.dev/maxScale: "100"
+        # Minimum number of instances
+        autoscaling.knative.dev/minScale: "1"
+        # CPU throttling
+        run.googleapis.com/cpu-throttling: "false"
+        # Execution environment
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      serviceAccountName: claude-gemini-service-account
+      containerConcurrency: 100
+      timeoutSeconds: 300
+      containers:
+      - name: claude-gemini-orchestrator
+        image: gcr.io/PROJECT_ID/claude-gemini-orchestrator:latest
+        ports:
+        - containerPort: 8080
+          name: http1
+        env:
+        - name: PORT
+          value: "8080"
+        - name: GCP_PROJECT_ID
+          value: PROJECT_ID
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: anthropic-api-key
+              key: api-key
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: gemini-api-key
+              key: api-key
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: ENVIRONMENT
+          value: "production"
+        resources:
+          requests:
+            cpu: "2"
+            memory: "4Gi"
+          limits:
+            cpu: "4"
+            memory: "8Gi"
+        # Startup probe - check if the service is ready to receive traffic
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 3
+        # Liveness probe - check if the service is still alive
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+          periodSeconds: 30
+          failureThreshold: 3
+        # Readiness probe - check if the service is ready to receive traffic
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          timeoutSeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3

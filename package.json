@@ -342,6 +342,36 @@
           "default": 30,
           "description": "Auto-save interval in seconds"
         },
+        "claudeGeminiAssistant.orchestratorUrl": {
+          "type": "string",
+          "default": "http://localhost:8080",
+          "description": "URL for the Claude-Gemini orchestration service"
+        },
+        "claudeGeminiAssistant.geminiServiceUrl": {
+          "type": "string",
+          "default": "",
+          "description": "URL for the Gemini Cloud Run service (optional)"
+        },
+        "claudeGeminiAssistant.claudeServiceUrl": {
+          "type": "string",
+          "default": "",
+          "description": "URL for the Claude Cloud Run service (optional)"
+        },
+        "claudeGeminiAssistant.cloudRunApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for Cloud Run services authentication (optional)"
+        },
+        "claudeGeminiAssistant.useLocalServices": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use local services when Cloud Run is unavailable"
+        },
+        "claudeGeminiAssistant.requestTimeout": {
+          "type": "number",
+          "default": 30000,
+          "description": "Request timeout in milliseconds for Cloud Run services"
+        },
         "claude-assistant.sessions.maxRecoveryPoints": {
           "type": "number",
           "default": 10,
