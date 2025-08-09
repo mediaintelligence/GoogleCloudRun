@@ -83,13 +83,12 @@ export class WorkRecoverySystem {
     constructor(
         private sessionManager: any,
         private workflowEngine: any,
-        private memorySystem: any
+    private memorySystem: any,
+    private context?: vscode.ExtensionContext
     ) {
-                // Note: context is not available in constructor, will be set up later
-        this.recoveryStoragePath = vscode.Uri.joinPath(
-            vscode.Uri.file(''), // Placeholder, will be set properly
-            'recovery-points'
-        );
+    // Use the extension's global storage for durable recovery points
+    const base = this.context?.globalStorageUri ?? vscode.Uri.file('');
+    this.recoveryStoragePath = vscode.Uri.joinPath(base, 'recovery-points');
         this.setupAutoRecovery();
         this.loadRecoveryPoints();
     }

@@ -51,11 +51,18 @@ describe('Claude Gemini Assistant Extension', () => {
       subscriptions: [],
       workspaceState: {
         get: jest.fn(),
-        update: jest.fn()
+        update: jest.fn(),
+        keys: jest.fn().mockReturnValue([])
       },
       globalState: {
         get: jest.fn(),
-        update: jest.fn()
+        update: jest.fn(),
+        keys: jest.fn().mockReturnValue([])
+      },
+      secrets: {
+        get: jest.fn(),
+        store: jest.fn(),
+        onDidChange: jest.fn(),
       },
       globalStorageUri: vscode.Uri.file('/tmp/test-storage'),
       logUri: vscode.Uri.file('/tmp/test-logs'),
@@ -63,7 +70,26 @@ describe('Claude Gemini Assistant Extension', () => {
       extensionPath: '/tmp/test-extension',
       environmentVariableCollection: {} as any,
       storageUri: vscode.Uri.file('/tmp/test-storage'),
-      extensionMode: vscode.ExtensionMode.Development
+      globalStoragePath: '/tmp/test-storage',
+      asAbsolutePath: (relativePath: string) => path.join('/tmp/test-extension', relativePath),
+      extensionMode: vscode.ExtensionMode.Development,
+      extension: {
+        id: 'test.extension',
+        extensionUri: vscode.Uri.file('/tmp/test-extension'),
+        extensionPath: '/tmp/test-extension',
+        isActive: true,
+        packageJSON: { name: 'test-extension', version: '0.0.1' },
+        extensionKind: vscode.ExtensionKind.UI,
+        exports: {},
+        activate: jest.fn(),
+      },
+      storagePath: '/tmp/test-storage',
+      logPath: '/tmp/test-logs',
+      languageModelAccessInformation: {
+        getLanguageModelAccessInformation: jest.fn().mockResolvedValue({
+          model: 'test-model'
+        })
+      }
     } as vscode.ExtensionContext;
   });
 

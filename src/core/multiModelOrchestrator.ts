@@ -12,10 +12,10 @@ import {
     RoutingDecision 
 } from '../types/bossAgentTypes';
 import { LLMAdapter } from './adapters/llmAdapter';
-import { CloudRunBridge, OrchestrationRequest, OrchestrationResponse } from '../services/cloudRunBridge';
+import { CloudRunBridge, OrchestrationRequest } from '../services/cloudRunBridge';
 
 class OrchestratorError extends Error {
-    constructor(message: string, public readonly originalError?: any) {
+    constructor(message: string, public readonly originalError?: unknown) {
         super(message);
         this.name = 'OrchestratorError';
     }
@@ -102,7 +102,7 @@ export class MultiModelOrchestrator {
      */
     async processRequest(
         prompt: string,
-        context?: any,
+        context?: Record<string, unknown>,
         options?: RequestOptions
     ): Promise<EnhancedResponse> {
         if (!this.isInitialized) {
@@ -116,7 +116,7 @@ export class MultiModelOrchestrator {
             try {
                 const orchRequest: OrchestrationRequest = {
                     prompt,
-                    task_type: this.inferTaskType(prompt, context),
+                    task_type: this.inferTaskType(prompt),
                     collaboration_mode: options?.collaborationMode || 'specialized',
                     context: context,
                     max_tokens: options?.maxTokens || 2048,
@@ -124,19 +124,49 @@ export class MultiModelOrchestrator {
                 };
 
                 const cloudResponse = await this.cloudRunBridge.orchestrate(orchRequest);
-                
-                return {
+
+                // Map cloud model to our ModelProvider union where possible
+                const mapModel = (m: string): ModelProvider => {
+                    const ml = (m || '').toLowerCase();
+                    if (ml.includes('claude')) return 'claude4';
+                    if (ml.includes('gpt')) return 'gpt4o';
+                    if (ml.includes('gemini')) return 'gemini25';
+                    if (ml.includes('grok')) return 'grok4';
+                    return 'cache';
+                };
+
+                const modelUsed = mapModel(cloudResponse.model_used);
+                const totalLatency = Date.now() - startTime;
+
+                const enhanced: EnhancedResponse = {
                     content: cloudResponse.primary_response,
-                    model: cloudResponse.model_used,
+                    model: modelUsed,
+                    tokens: 0,
+                    cost: 0,
+                    latency: totalLatency,
                     confidence: cloudResponse.confidence_score,
                     metadata: {
                         ...cloudResponse.metadata,
                         supporting_response: cloudResponse.supporting_response,
                         collaboration_mode: cloudResponse.collaboration_mode,
-                        processing_time: Date.now() - startTime,
+                        processing_time: totalLatency,
                         cloud_run: true
-                    }
-                } as EnhancedResponse;
+                    },
+                    routing: {
+                        selectedModel: modelUsed,
+                        reasoning: 'Cloud Run orchestrator decision',
+                        confidence: cloudResponse.confidence_score,
+                        alternativesConsidered: []
+                    },
+                    performance: {
+                        totalLatency,
+                        modelLatency: totalLatency,
+                        routingLatency: 0
+                    },
+                    suggestions: []
+                };
+
+                return enhanced;
             } catch (error) {
                 console.log('⚠️ Cloud Run failed, falling back to local processing');
             }
@@ -180,7 +210,7 @@ export class MultiModelOrchestrator {
     /**
      * Infer task type from prompt and context
      */
-    private inferTaskType(prompt: string, context?: any): OrchestrationRequest['task_type'] {
+    private inferTaskType(prompt: string): OrchestrationRequest['task_type'] {
         const lowerPrompt = prompt.toLowerCase();
         
         if (lowerPrompt.includes('code') || lowerPrompt.includes('function') || lowerPrompt.includes('implement')) {
@@ -211,10 +241,10 @@ export class MultiModelOrchestrator {
     async processRequestStream(
         prompt: string,
         onChunk: (chunk: string, metadata?: any) => void,
-        context?: any,
+        _context?: any,
         options?: RequestOptions
     ): Promise<EnhancedResponse> {
-        const request = await this.buildRequest(prompt, context, options);
+        const request = await this.buildRequest(prompt, _context, options);
         const routingDecision = await this.bossAgent.route(request);
         
         const adapter = this.adapters.get(routingDecision.primaryModel);
@@ -242,7 +272,7 @@ export class MultiModelOrchestrator {
     /**
      * Legacy compatibility method - maps old Gemini calls to orchestrator
      */
-    async processGeminiRequest(prompt: string, context?: any): Promise<any> {
+    async processGeminiRequest(prompt: string, context?: Record<string, unknown>): Promise<{ content: string; usage: { tokens: number; cost: number } }> {
         console.log('🔄 Legacy Gemini request routed through Boss Agent');
         const response = await this.processRequest(prompt, context);
         
@@ -259,7 +289,7 @@ export class MultiModelOrchestrator {
     /**
      * Legacy compatibility method - maps old Claude calls to orchestrator
      */
-    async processClaudeRequest(instruction: string, context?: any): Promise<any> {
+    async processClaudeRequest(instruction: string, context?: Record<string, unknown>): Promise<{ output: string; success: boolean; duration: number; filesModified: string[]; testsRun: number; testsPassed: number; }> {
         console.log('🔄 Legacy Claude request routed through Boss Agent');
         const response = await this.processRequest(instruction, context);
         
@@ -319,7 +349,7 @@ export class MultiModelOrchestrator {
     
     private async buildRequest(
         prompt: string,
-        context?: any,
+        _context?: Record<string, unknown>,
         options?: RequestOptions
     ): Promise<LLMRequest> {
         const request: LLMRequest = {
@@ -333,18 +363,23 @@ export class MultiModelOrchestrator {
             }
         };
         
-        // Add project context if available
-        if (context?.includeProjectContext) {
+        // Add project context if requested
+        if (options?.includeProjectContext) {
             const projectContext = await this._projectIntelligence.getProjectContext();
             request.context = [JSON.stringify(projectContext)];
         }
         
         // Add relevant memories
         if (this._memorySystem) {
-            const relevantMemories = await this._memorySystem.getRelevantMemories(prompt, this._projectIntelligence as any, 5);
-            if (relevantMemories.length > 0) {
-                request.context = request.context || [];
-                request.context.push(`Relevant past experiences:\n${relevantMemories.map((m: any) => m.content).join('\n')}`);
+            const projectIntel = await this._projectIntelligence.getProjectIntelligence();
+            if (projectIntel) {
+                const relevantMemories = await this._memorySystem.getRelevantMemories(prompt, projectIntel, 5);
+                if (relevantMemories.length > 0) {
+                    request.context = request.context || [];
+                    request.context.push(
+                        `Relevant past experiences:\n${relevantMemories.map((m) => `- ${m.input} -> ${m.result.substring(0, 100)}...`).join('\n')}`
+                    );
+                }
             }
         }
         
@@ -393,12 +428,14 @@ export class MultiModelOrchestrator {
         _response: LLMResponse,
         _decision: RoutingDecision
     ): Promise<void> {
+        // Mark parameter as used to satisfy noUnusedParameters
+        void _decision;
         // Record this interaction for learning and improvement
         if (this._memorySystem) {
             await this._memorySystem.recordExecution({
                 input: _request.prompt.slice(0, 200),
                 result: _response.content.slice(0, 200),
-                context: await this._projectIntelligence.getProjectContext() as any,
+                context: await this._projectIntelligence.getProjectContext(),
                 timestamp: new Date()
             });
         }
@@ -417,7 +454,8 @@ interface RequestOptions {
     temperature?: number;
     includeProjectContext?: boolean;
     priority?: 'low' | 'normal' | 'high';
-    metadata?: Record<string, any>;
+    collaborationMode?: 'parallel' | 'sequential' | 'debate' | 'consensus' | 'specialized';
+    metadata?: Record<string, unknown>;
 }
 
 interface EnhancedResponse extends LLMResponse {
@@ -436,8 +474,8 @@ interface EnhancedResponse extends LLMResponse {
 }
 
 interface RoutingInsights {
-    recentDecisions: any[];
-    modelPerformance: Record<string, any>;
-    costAnalysis: Record<string, any>;
+    recentDecisions: unknown[];
+    modelPerformance: Record<string, unknown>;
+    costAnalysis: Record<string, unknown>;
     recommendations: string[];
 }
