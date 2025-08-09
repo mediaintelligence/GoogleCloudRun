@@ -1050,11 +1050,7 @@ class ClaudeGeminiAssistant {
         instruction: string
     ): Promise<ExecutionContext> {
         // Get relevant memories
-        const relevantMemories = await this.memorySystem.getRelevantMemories(
-            instruction,
-            projectIntel,
-            5
-        );
+        const relevantMemories = await this.memorySystem.searchMemories(instruction);
         
         // Get applicable patterns
         const applicablePatterns = await this.memorySystem.getApplicablePatterns(
