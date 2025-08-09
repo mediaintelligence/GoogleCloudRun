@@ -350,16 +350,16 @@ export class MultiModelOrchestrator {
         
         // Add project context if available
         if (context?.includeProjectContext) {
-            const projectContext = await this._projectIntelligence.getProjectContext();
+            const projectContext = await this._projectIntelligence.getProjectIntelligence();
             request.context = [JSON.stringify(projectContext)];
         }
         
         // Add relevant memories
         if (this._memorySystem) {
-            const relevantMemories = await this._memorySystem.getRelevantMemories(prompt, this._projectIntelligence as any, 5);
+            const relevantMemories = await this._memorySystem.searchMemories(prompt);
             if (relevantMemories.length > 0) {
                 request.context = request.context || [];
-                request.context.push(`Relevant past experiences:\n${relevantMemories.map((m: any) => m.content).join('\n')}`);
+                request.context.push(`Relevant past experiences:\n${relevantMemories.map((m: any) => m.result).join('\n')}`);
             }
         }
         
@@ -413,7 +413,7 @@ export class MultiModelOrchestrator {
             await this._memorySystem.recordExecution({
                 input: _request.prompt.slice(0, 200),
                 result: _response.content.slice(0, 200),
-                context: await this._projectIntelligence.getProjectContext() as any,
+                context: await this._projectIntelligence.getProjectIntelligence() as any,
                 timestamp: new Date()
             });
         }
