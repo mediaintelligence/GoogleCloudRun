@@ -33,11 +33,20 @@ jest.mock('vscode', () => ({
     Right: 1,
     Left: 2
   },
+  ExtensionMode: {
+    Production: 1,
+    Development: 2,
+    Test: 3
+  },
+  ExtensionKind: {
+    UI: 1,
+    Workspace: 2
+  },
   Uri: {
     file: jest.fn((path) => ({ fsPath: path })),
     joinPath: jest.fn((base, ...paths) => ({ fsPath: path.join(base.fsPath, ...paths) }))
   }
-}));
+}), { virtual: true });
 
 describe('Claude Gemini Assistant Extension', () => {
   let extensionContext: vscode.ExtensionContext;
@@ -47,28 +56,41 @@ describe('Claude Gemini Assistant Extension', () => {
     jest.clearAllMocks();
     
     // Mock extension context
-    extensionContext = {
+  extensionContext = ({
       subscriptions: [],
       workspaceState: {
-        get: jest.fn(),
-        update: jest.fn(),
-        keys: jest.fn().mockReturnValue([])
+    get: jest.fn(),
+    update: jest.fn(),
+    keys: jest.fn(() => [])
       },
       globalState: {
-        get: jest.fn(),
-        update: jest.fn(),
-        keys: jest.fn().mockReturnValue([])
+    get: jest.fn(),
+    update: jest.fn(),
+    keys: jest.fn(() => []),
+    setKeysForSync: jest.fn()
       },
       secrets: {
         get: jest.fn(),
         store: jest.fn(),
+  delete: jest.fn(),
         onDidChange: jest.fn(),
       },
       globalStorageUri: vscode.Uri.file('/tmp/test-storage'),
       logUri: vscode.Uri.file('/tmp/test-logs'),
       extensionUri: vscode.Uri.file('/tmp/test-extension'),
       extensionPath: '/tmp/test-extension',
-      environmentVariableCollection: {} as any,
+      environmentVariableCollection: {
+        persistent: true,
+        replace: jest.fn(),
+        append: jest.fn(),
+        prepend: jest.fn(),
+        getScoped: jest.fn(() => ({
+          replace: jest.fn(),
+          append: jest.fn(),
+          prepend: jest.fn()
+        })),
+        forEach: jest.fn()
+      } as unknown as vscode.GlobalEnvironmentVariableCollection,
       storageUri: vscode.Uri.file('/tmp/test-storage'),
       globalStoragePath: '/tmp/test-storage',
       asAbsolutePath: (relativePath: string) => path.join('/tmp/test-extension', relativePath),
@@ -90,7 +112,7 @@ describe('Claude Gemini Assistant Extension', () => {
           model: 'test-model'
         })
       }
-    } as vscode.ExtensionContext;
+  } as unknown) as vscode.ExtensionContext;
   });
 
   describe('Compilation Tests', () => {
@@ -208,7 +230,7 @@ describe('Claude Gemini Assistant Extension', () => {
         'claude-assistant.restoreFromRecovery'
       ];
       
-      const registeredCommands = packageJson.contributes?.commands?.map((cmd: any) => cmd.command) || [];
+  const registeredCommands = (packageJson.contributes?.commands as Array<{ command: string }> | undefined)?.map((cmd) => cmd.command) || [];
       
       requiredCommands.forEach(command => {
         expect(registeredCommands).toContain(command);
@@ -378,14 +400,10 @@ describe('Extension Integration Tests', () => {
     const packageJsonPath = path.join(__dirname, '..', 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     
-    const requiredDeps = [
-      'vscode',
-      'uuid',
-      '@google/generative-ai'
-    ];
-    
-    requiredDeps.forEach(dep => {
-      expect(packageJson.dependencies).toHaveProperty(dep);
-    });
+  // VS Code API is provided by the host and shouldn't be in dependencies.
+  expect(packageJson.dependencies).toHaveProperty('uuid');
+  expect(packageJson.dependencies).toHaveProperty('@google/generative-ai');
+  // Ensure VS Code types are present in devDependencies
+  expect(packageJson.devDependencies).toHaveProperty('@types/vscode');
   });
-}); 
+});

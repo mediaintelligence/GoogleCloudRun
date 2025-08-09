@@ -2,6 +2,10 @@
 
 An advanced AI-powered development assistant that combines the power of Claude and Gemini models for intelligent code analysis, systematic workflows, and adaptive learning.
 
+## Features
+
+This alias heading is provided for compatibility with tooling that expects a plain "Features" section. For the full, categorized list, see the next section.
+
 ## ✨ Features
 
 ### 🤖 Core AI Capabilities
@@ -33,6 +37,14 @@ An advanced AI-powered development assistant that combines the power of Claude a
 - **Progress Tracking**: Monitor workflow execution and progress
 - **Success Criteria**: Define and track completion criteria
 - **Execution History**: Review and learn from past executions
+
+## Installation
+
+You can install the extension in a few ways:
+
+- From VS Code Marketplace: search for "Claude Gemini Assistant" and click Install
+- Or install the packaged VSIX in this repo
+- After installation, configure your API keys in VS Code settings
 
 ## 🚀 Quick Start
 

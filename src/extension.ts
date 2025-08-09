@@ -160,8 +160,7 @@ class ClaudeGeminiAssistant {
         this.workRecoverySystem = new WorkRecoverySystem(
             this.sessionManager,
             this.workflowEngine,
-            this.memorySystem,
-            this.extensionContext
+            this.memorySystem
         );
     }
     
