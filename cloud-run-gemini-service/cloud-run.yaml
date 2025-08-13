@@ -23,7 +23,7 @@ spec:
       timeoutSeconds: 300
       containers:
       - name: gemini-orchestration
-        image: gcr.io/PROJECT_ID/gemini-orchestration-service:latest
+        image: gcr.io/spry-bus-425315-p6/gemini-orchestration-service:latest
         ports:
         - containerPort: 8080
           name: http1
@@ -31,7 +31,7 @@ spec:
         - name: PORT
           value: "8080"
         - name: GCP_PROJECT_ID
-          value: PROJECT_ID
+          value: spry-bus-425315-p6
         - name: GEMINI_API_KEY
           valueFrom:
             secretKeyRef:
