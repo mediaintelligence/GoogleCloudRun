@@ -19,6 +19,7 @@ import httpx
 import anthropic
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
+import openai
 
 # Configure logging
 logging.basicConfig(
@@ -56,6 +57,16 @@ class AIModel(str, Enum):
     GEMINI_2_0_FLASH = "gemini-2.0-flash-exp"  # Latest Gemini 2.0
     GEMINI_1_5_PRO = "gemini-1.5-pro-002"  # Latest 1.5 Pro
     GEMINI_1_5_FLASH = "gemini-1.5-flash-002"  # Latest 1.5 Flash
+    
+    # OpenAI Models (ChatGPT) - Using requested naming
+    CHATGPT_5 = "gpt-4-turbo-preview"  # Maps to GPT-4 Turbo (latest available)
+    GPT_4_TURBO = "gpt-4-turbo-preview"  # GPT-4 Turbo
+    GPT_4 = "gpt-4"  # Standard GPT-4
+    GPT_3_5_TURBO = "gpt-3.5-turbo"  # GPT-3.5 Turbo
+    
+    # Grok Models - Using requested naming
+    GROK_4_HEAVY = "grok-beta"  # Maps to Grok API (when available)
+    GROK_2 = "grok-2-beta"  # Grok 2 model
 
 class TaskType(str, Enum):
     ANALYSIS = "analysis"
@@ -122,6 +133,29 @@ class AIOrchestrator:
         else:
             logger.warning("GEMINI_API_KEY not found")
         
+        # Initialize OpenAI (ChatGPT)
+        self.openai_api_key = os.environ.get("OPENAI_API_KEY")
+        if self.openai_api_key:
+            openai.api_key = self.openai_api_key
+            self.openai_client = openai.OpenAI(api_key=self.openai_api_key)
+            logger.info("OpenAI API initialized")
+        else:
+            logger.warning("OPENAI_API_KEY not found")
+            self.openai_client = None
+        
+        # Initialize Grok (X.AI)
+        self.grok_api_key = os.environ.get("GROK_API_KEY") or os.environ.get("XAI_API_KEY")
+        if self.grok_api_key:
+            # Grok uses OpenAI-compatible API
+            self.grok_client = openai.OpenAI(
+                api_key=self.grok_api_key,
+                base_url="https://api.x.ai/v1"  # X.AI endpoint
+            )
+            logger.info("Grok API initialized")
+        else:
+            logger.warning("GROK_API_KEY/XAI_API_KEY not found")
+            self.grok_client = None
+        
         # Model capabilities matrix - Updated for latest models
         self.model_capabilities = {
             AIModel.CLAUDE_4_1: {
@@ -165,17 +199,52 @@ class AIOrchestrator:
                 "speed": "very_fast",
                 "cost": "low",
                 "version": "1.5"
+            },
+            AIModel.CHATGPT_5: {
+                "strengths": ["reasoning", "code", "analysis", "creative", "latest"],
+                "context_window": 128000,
+                "speed": "fast",
+                "cost": "high",
+                "version": "5.0"
+            },
+            AIModel.GPT_4_TURBO: {
+                "strengths": ["reasoning", "code", "analysis", "creative"],
+                "context_window": 128000,
+                "speed": "fast",
+                "cost": "high",
+                "version": "4.0-turbo"
+            },
+            AIModel.GPT_3_5_TURBO: {
+                "strengths": ["speed", "efficiency", "general"],
+                "context_window": 16384,
+                "speed": "very_fast",
+                "cost": "low",
+                "version": "3.5-turbo"
+            },
+            AIModel.GROK_4_HEAVY: {
+                "strengths": ["reasoning", "analysis", "real-time", "humor"],
+                "context_window": 100000,
+                "speed": "medium",
+                "cost": "medium",
+                "version": "4.0-heavy"
+            },
+            AIModel.GROK_2: {
+                "strengths": ["speed", "real-time", "conversational"],
+                "context_window": 100000,
+                "speed": "fast",
+                "cost": "low",
+                "version": "2.0"
             }
         }
         
         self.task_model_mapping = {
-            TaskType.ANALYSIS: [AIModel.CLAUDE_4_1, AIModel.GEMINI_2_5_PRO],
-            TaskType.CODE: [AIModel.CLAUDE_4_1, AIModel.CLAUDE_3_OPUS],
-            TaskType.VISION: [AIModel.GEMINI_2_5_PRO, AIModel.GEMINI_1_5_PRO],
-            TaskType.REASONING: [AIModel.CLAUDE_4_1, AIModel.GEMINI_2_5_PRO],
-            TaskType.CREATIVE: [AIModel.CLAUDE_4_1, AIModel.GEMINI_2_5_PRO],
-            TaskType.TRANSLATION: [AIModel.GEMINI_2_5_PRO, AIModel.CLAUDE_3_HAIKU],
-            TaskType.SUMMARIZATION: [AIModel.GEMINI_1_5_FLASH, AIModel.CLAUDE_3_HAIKU]
+            TaskType.ANALYSIS: [AIModel.CLAUDE_4_1, AIModel.CHATGPT_5, AIModel.GROK_4_HEAVY, AIModel.GEMINI_2_5_PRO],
+            TaskType.CODE: [AIModel.SONNET_4_0, AIModel.CHATGPT_5, AIModel.CLAUDE_4_1, AIModel.GPT_4_TURBO],
+            TaskType.VISION: [AIModel.GEMINI_2_5_PRO, AIModel.GPT_4_TURBO, AIModel.GEMINI_1_5_PRO],
+            TaskType.REASONING: [AIModel.CLAUDE_4_1, AIModel.CHATGPT_5, AIModel.GROK_4_HEAVY, AIModel.GEMINI_2_5_PRO],
+            TaskType.CREATIVE: [AIModel.SONNET_4_0, AIModel.CHATGPT_5, AIModel.GEMINI_2_5_PRO, AIModel.GROK_2],
+            TaskType.TRANSLATION: [AIModel.GEMINI_2_5_PRO, AIModel.GPT_3_5_TURBO, AIModel.CLAUDE_3_HAIKU],
+            TaskType.SUMMARIZATION: [AIModel.GPT_3_5_TURBO, AIModel.GEMINI_2_0_FLASH, AIModel.GROK_2, AIModel.CLAUDE_3_HAIKU]
         }
     
     def select_optimal_model(self, task_type: TaskType, context: Dict[str, Any] = None) -> AIModel:
@@ -231,6 +300,54 @@ class AIOrchestrator:
         except Exception as e:
             logger.error(f"Claude API error: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Claude API error: {str(e)}")
+    
+    async def call_openai(self, prompt: str, model: AIModel, max_tokens: int = 2048, temperature: float = 0.7) -> str:
+        """Call OpenAI API (ChatGPT)"""
+        if not self.openai_client:
+            raise HTTPException(status_code=500, detail="OpenAI API not configured")
+        
+        try:
+            # Map to actual OpenAI model names
+            model_mapping = {
+                AIModel.CHATGPT_5: "gpt-4-turbo-preview",
+                AIModel.GPT_4_TURBO: "gpt-4-turbo-preview",
+                AIModel.GPT_4: "gpt-4",
+                AIModel.GPT_3_5_TURBO: "gpt-3.5-turbo"
+            }
+            
+            response = self.openai_client.chat.completions.create(
+                model=model_mapping.get(model, "gpt-4-turbo-preview"),
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=max_tokens,
+                temperature=temperature
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.error(f"OpenAI API error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
+    
+    async def call_grok(self, prompt: str, model: AIModel, max_tokens: int = 2048, temperature: float = 0.7) -> str:
+        """Call Grok API (X.AI)"""
+        if not self.grok_client:
+            raise HTTPException(status_code=500, detail="Grok API not configured")
+        
+        try:
+            # Map to actual Grok model names
+            model_mapping = {
+                AIModel.GROK_4_HEAVY: "grok-beta",
+                AIModel.GROK_2: "grok-2-beta"
+            }
+            
+            response = self.grok_client.chat.completions.create(
+                model=model_mapping.get(model, "grok-beta"),
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=max_tokens,
+                temperature=temperature
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.error(f"Grok API error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Grok API error: {str(e)}")
     
     async def call_gemini(self, prompt: str, model: AIModel, max_tokens: int = 2048, temperature: float = 0.7) -> str:
         """Call Gemini API"""
@@ -550,7 +667,9 @@ async def health_check():
         "timestamp": datetime.utcnow().isoformat(),
         "service": "claude-gemini-orchestrator",
         "claude_configured": orchestrator.claude_client is not None,
-        "gemini_configured": orchestrator.gemini_api_key is not None
+        "gemini_configured": orchestrator.gemini_api_key is not None,
+        "openai_configured": orchestrator.openai_client is not None,
+        "grok_configured": orchestrator.grok_client is not None
     }
 
 @app.post("/orchestrate", response_model=OrchestrationResponse)
@@ -666,12 +785,26 @@ async def list_models():
     models_status = []
     
     for model in AIModel:
-        is_claude = "claude" in model.value
-        is_configured = orchestrator.claude_client is not None if is_claude else orchestrator.gemini_api_key is not None
+        is_claude = "claude" in model.value.lower() or "sonnet" in model.value.lower()
+        is_openai = "gpt" in model.value.lower() or "chatgpt" in model.value.lower()
+        is_grok = "grok" in model.value.lower()
+        
+        if is_claude:
+            is_configured = orchestrator.claude_client is not None
+            provider = "Anthropic"
+        elif is_openai:
+            is_configured = orchestrator.openai_client is not None
+            provider = "OpenAI"
+        elif is_grok:
+            is_configured = orchestrator.grok_client is not None
+            provider = "X.AI (Grok)"
+        else:
+            is_configured = orchestrator.gemini_api_key is not None
+            provider = "Google"
         
         models_status.append({
             "model": model.value,
-            "provider": "Anthropic" if is_claude else "Google",
+            "provider": provider,
             "configured": is_configured,
             "capabilities": orchestrator.model_capabilities.get(model, {})
         })
