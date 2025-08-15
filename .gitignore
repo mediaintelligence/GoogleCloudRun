@@ -72,3 +72,14 @@ yarn.lock
 # Testing
 .jest/
 __tests__/coverage/*.vsix
+
+# Python
+__pycache__/
+venv/
+.venv/
+*.pyc
+*.pyo
+*.pyd
+
+# Orchestrator
+.orchestrator.pid
