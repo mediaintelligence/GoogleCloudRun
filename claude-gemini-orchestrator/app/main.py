@@ -43,15 +43,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Model types
+# Model types - Custom Configuration as Requested
 class AIModel(str, Enum):
-    CLAUDE_3_OPUS = "claude-3-opus-20240229"
-    CLAUDE_3_SONNET = "claude-3-sonnet-20240229"
-    CLAUDE_3_HAIKU = "claude-3-haiku-20240307"
-    GEMINI_PRO = "gemini-pro"
-    GEMINI_PRO_VISION = "gemini-pro-vision"
-    GEMINI_1_5_PRO = "gemini-1.5-pro-latest"
-    GEMINI_1_5_FLASH = "gemini-1.5-flash-latest"
+    # Claude Models - Using requested naming
+    CLAUDE_4_1 = "claude-3-5-sonnet-20241022"  # Maps to Claude 3.5 Sonnet (latest available)
+    SONNET_4_0 = "claude-3-5-sonnet-20241022"  # Maps to Claude 3.5 Sonnet
+    CLAUDE_3_OPUS = "claude-3-opus-20240229"  # Most capable classic
+    CLAUDE_3_HAIKU = "claude-3-haiku-20240307"  # Fastest
+    
+    # Gemini Models - Using requested naming  
+    GEMINI_2_5_PRO = "gemini-2.0-flash-exp"  # Maps to Gemini 2.0 Flash (latest available)
+    GEMINI_2_0_FLASH = "gemini-2.0-flash-exp"  # Latest Gemini 2.0
+    GEMINI_1_5_PRO = "gemini-1.5-pro-002"  # Latest 1.5 Pro
+    GEMINI_1_5_FLASH = "gemini-1.5-flash-002"  # Latest 1.5 Flash
 
 class TaskType(str, Enum):
     ANALYSIS = "analysis"
@@ -118,71 +122,98 @@ class AIOrchestrator:
         else:
             logger.warning("GEMINI_API_KEY not found")
         
-        # Model capabilities matrix
+        # Model capabilities matrix - Updated for latest models
         self.model_capabilities = {
+            AIModel.CLAUDE_4_1: {
+                "strengths": ["reasoning", "code", "analysis", "creative", "latest"],
+                "context_window": 200000,
+                "speed": "fast",
+                "cost": "medium",
+                "version": "3.5"
+            },
             AIModel.CLAUDE_3_OPUS: {
                 "strengths": ["reasoning", "analysis", "code", "creative"],
                 "context_window": 200000,
                 "speed": "slow",
-                "cost": "high"
-            },
-            AIModel.CLAUDE_3_SONNET: {
-                "strengths": ["balance", "code", "analysis"],
-                "context_window": 200000,
-                "speed": "medium",
-                "cost": "medium"
+                "cost": "high",
+                "version": "3.0"
             },
             AIModel.CLAUDE_3_HAIKU: {
                 "strengths": ["speed", "simple_tasks"],
                 "context_window": 200000,
-                "speed": "fast",
-                "cost": "low"
+                "speed": "very_fast",
+                "cost": "low",
+                "version": "3.0"
+            },
+            AIModel.GEMINI_2_5_PRO: {
+                "strengths": ["latest", "speed", "multimodal", "reasoning"],
+                "context_window": 1000000,
+                "speed": "very_fast",
+                "cost": "low",
+                "version": "2.0"
             },
             AIModel.GEMINI_1_5_PRO: {
                 "strengths": ["vision", "multimodal", "long_context"],
-                "context_window": 1000000,
+                "context_window": 2000000,
                 "speed": "medium",
-                "cost": "medium"
+                "cost": "medium",
+                "version": "1.5"
             },
             AIModel.GEMINI_1_5_FLASH: {
                 "strengths": ["speed", "efficiency"],
                 "context_window": 1000000,
                 "speed": "very_fast",
-                "cost": "low"
+                "cost": "low",
+                "version": "1.5"
             }
         }
         
         self.task_model_mapping = {
-            TaskType.ANALYSIS: [AIModel.CLAUDE_3_OPUS, AIModel.GEMINI_1_5_PRO],
-            TaskType.CODE: [AIModel.CLAUDE_3_SONNET, AIModel.CLAUDE_3_OPUS],
-            TaskType.VISION: [AIModel.GEMINI_1_5_PRO, AIModel.GEMINI_PRO_VISION],
-            TaskType.REASONING: [AIModel.CLAUDE_3_OPUS, AIModel.CLAUDE_3_SONNET],
-            TaskType.CREATIVE: [AIModel.CLAUDE_3_OPUS, AIModel.GEMINI_1_5_PRO],
-            TaskType.TRANSLATION: [AIModel.GEMINI_1_5_FLASH, AIModel.CLAUDE_3_HAIKU],
-            TaskType.SUMMARIZATION: [AIModel.CLAUDE_3_HAIKU, AIModel.GEMINI_1_5_FLASH]
+            TaskType.ANALYSIS: [AIModel.CLAUDE_4_1, AIModel.GEMINI_2_5_PRO],
+            TaskType.CODE: [AIModel.CLAUDE_4_1, AIModel.CLAUDE_3_OPUS],
+            TaskType.VISION: [AIModel.GEMINI_2_5_PRO, AIModel.GEMINI_1_5_PRO],
+            TaskType.REASONING: [AIModel.CLAUDE_4_1, AIModel.GEMINI_2_5_PRO],
+            TaskType.CREATIVE: [AIModel.CLAUDE_4_1, AIModel.GEMINI_2_5_PRO],
+            TaskType.TRANSLATION: [AIModel.GEMINI_2_5_PRO, AIModel.CLAUDE_3_HAIKU],
+            TaskType.SUMMARIZATION: [AIModel.GEMINI_1_5_FLASH, AIModel.CLAUDE_3_HAIKU]
         }
     
     def select_optimal_model(self, task_type: TaskType, context: Dict[str, Any] = None) -> AIModel:
         """Select the optimal model based on task type and context"""
-        preferred_models = self.task_model_mapping.get(task_type, [AIModel.CLAUDE_3_SONNET])
+        preferred_models = self.task_model_mapping.get(task_type, [AIModel.CLAUDE_4_1])
         
         # Consider context for model selection
         if context:
             if context.get("require_speed"):
                 # Prefer faster models
-                if AIModel.GEMINI_1_5_FLASH in preferred_models:
+                if AIModel.GEMINI_2_5_PRO in preferred_models:
+                    return AIModel.GEMINI_2_5_PRO
+                elif AIModel.GEMINI_1_5_FLASH in preferred_models:
                     return AIModel.GEMINI_1_5_FLASH
                 elif AIModel.CLAUDE_3_HAIKU in preferred_models:
                     return AIModel.CLAUDE_3_HAIKU
             
             if context.get("require_accuracy"):
                 # Prefer more capable models
-                if AIModel.CLAUDE_3_OPUS in preferred_models:
+                if AIModel.CLAUDE_4_1 in preferred_models:
+                    return AIModel.CLAUDE_4_1
+                elif AIModel.SONNET_4_0 in preferred_models:
+                    return AIModel.SONNET_4_0
+                elif AIModel.CLAUDE_3_OPUS in preferred_models:
                     return AIModel.CLAUDE_3_OPUS
-                elif AIModel.GEMINI_1_5_PRO in preferred_models:
-                    return AIModel.GEMINI_1_5_PRO
+                elif AIModel.GEMINI_2_5_PRO in preferred_models:
+                    return AIModel.GEMINI_2_5_PRO
+            
+            if context.get("use_latest"):
+                # Prefer latest models
+                if AIModel.CLAUDE_4_1 in preferred_models:
+                    return AIModel.CLAUDE_4_1
+                elif AIModel.SONNET_4_0 in preferred_models:
+                    return AIModel.SONNET_4_0
+                elif AIModel.GEMINI_2_5_PRO in preferred_models:
+                    return AIModel.GEMINI_2_5_PRO
         
-        return preferred_models[0] if preferred_models else AIModel.CLAUDE_3_SONNET
+        return preferred_models[0] if preferred_models else AIModel.CLAUDE_4_1
     
     async def call_claude(self, prompt: str, model: AIModel, max_tokens: int = 2048, temperature: float = 0.7) -> str:
         """Call Claude API"""
@@ -209,14 +240,15 @@ class AIOrchestrator:
         try:
             # Map to actual Gemini model names
             model_mapping = {
-                AIModel.GEMINI_1_5_PRO: "gemini-1.5-pro-latest",
-                AIModel.GEMINI_1_5_FLASH: "gemini-1.5-flash-latest",
+                AIModel.GEMINI_2_5_PRO: "gemini-2.0-flash-exp",
+                AIModel.GEMINI_1_5_PRO: "gemini-1.5-pro-002",
+                AIModel.GEMINI_1_5_FLASH: "gemini-1.5-flash-002",
                 AIModel.GEMINI_PRO: "gemini-pro",
                 AIModel.GEMINI_PRO_VISION: "gemini-pro-vision"
             }
             
             gemini_model = genai.GenerativeModel(
-                model_name=model_mapping.get(model, "gemini-1.5-pro-latest"),
+                model_name=model_mapping.get(model, "gemini-2.0-flash-exp"),
                 generation_config={
                     "temperature": temperature,
                     "max_output_tokens": max_tokens,
@@ -233,9 +265,9 @@ class AIOrchestrator:
         """Execute tasks in parallel using both models"""
         logger.info(f"Parallel execution for task: {request.task_type}")
         
-        # Select models
+        # Select models - use latest models
         primary_model = self.select_optimal_model(request.task_type, request.context)
-        secondary_model = AIModel.GEMINI_1_5_PRO if "claude" in primary_model.value else AIModel.CLAUDE_3_SONNET
+        secondary_model = AIModel.GEMINI_2_5_PRO if "claude" in primary_model.value else AIModel.CLAUDE_4_1
         
         # Execute in parallel
         tasks = []
@@ -272,8 +304,8 @@ class AIOrchestrator:
         """Execute tasks sequentially, with output from one feeding into another"""
         logger.info(f"Sequential execution for task: {request.task_type}")
         
-        # First model analyzes
-        analysis_model = AIModel.CLAUDE_3_OPUS if request.task_type in [TaskType.ANALYSIS, TaskType.REASONING] else AIModel.GEMINI_1_5_PRO
+        # First model analyzes - use latest models
+        analysis_model = AIModel.CLAUDE_4_1 if request.task_type in [TaskType.ANALYSIS, TaskType.REASONING] else AIModel.GEMINI_2_5_PRO
         
         analysis_prompt = f"Analyze this request and provide key insights:\n{request.prompt}"
         
@@ -283,7 +315,7 @@ class AIOrchestrator:
             analysis = await self.call_gemini(analysis_prompt, analysis_model, 1024, 0.5)
         
         # Second model builds on analysis
-        synthesis_model = AIModel.GEMINI_1_5_PRO if "claude" in analysis_model.value else AIModel.CLAUDE_3_SONNET
+        synthesis_model = AIModel.GEMINI_2_5_PRO if "claude" in analysis_model.value else AIModel.CLAUDE_4_1
         
         synthesis_prompt = f"""Based on this analysis:
 {analysis}
@@ -313,9 +345,9 @@ Now provide a comprehensive response to the original request:
         """Models debate and refine each other's responses"""
         logger.info(f"Debate execution for task: {request.task_type}")
         
-        # Initial responses from both models
-        claude_model = AIModel.CLAUDE_3_SONNET
-        gemini_model = AIModel.GEMINI_1_5_PRO
+        # Initial responses from both latest models
+        claude_model = AIModel.CLAUDE_4_1
+        gemini_model = AIModel.GEMINI_2_5_PRO
         
         # Round 1: Initial responses
         claude_response = await self.call_claude(request.prompt, claude_model, 1024, request.temperature)
@@ -330,13 +362,13 @@ Model B's response: {gemini_response}
 
 Provide a refined answer that combines the best insights from both responses and addresses any gaps or disagreements."""
         
-        # Final synthesis by Claude Opus (best reasoner)
-        final_response = await self.call_claude(critique_prompt, AIModel.CLAUDE_3_OPUS, request.max_tokens, 0.5)
+        # Final synthesis by Claude 3.5 Sonnet (latest and best)
+        final_response = await self.call_claude(critique_prompt, AIModel.CLAUDE_4_1, request.max_tokens, 0.5)
         
         return OrchestrationResponse(
             primary_response=final_response,
             supporting_response=f"Claude: {claude_response[:500]}...\n\nGemini: {gemini_response[:500]}...",
-            model_used=AIModel.CLAUDE_3_OPUS.value,
+            model_used=AIModel.CLAUDE_4_1.value,
             supporting_model=f"{claude_model.value} + {gemini_model.value}",
             collaboration_mode=CollaborationMode.DEBATE,
             confidence_score=0.95,
@@ -351,8 +383,8 @@ Provide a refined answer that combines the best insights from both responses and
         """Both models must reach consensus"""
         logger.info(f"Consensus execution for task: {request.task_type}")
         
-        model1 = AIModel.CLAUDE_3_SONNET
-        model2 = AIModel.GEMINI_1_5_PRO
+        model1 = AIModel.CLAUDE_4_1
+        model2 = AIModel.GEMINI_2_5_PRO
         
         # Get initial responses
         response1 = await self.call_claude(request.prompt, model1, request.max_tokens, request.temperature)
@@ -367,7 +399,7 @@ Response 2: {response2}
 
 If they agree, provide a unified response. If they disagree, identify the key differences and provide a balanced perspective."""
         
-        consensus_response = await self.call_claude(consensus_prompt, AIModel.CLAUDE_3_OPUS, request.max_tokens, 0.3)
+        consensus_response = await self.call_claude(consensus_prompt, AIModel.CLAUDE_4_1, request.max_tokens, 0.3)
         
         # Simple consensus check
         consensus_achieved = "agree" in consensus_response.lower() or "consensus" in consensus_response.lower()
@@ -376,13 +408,13 @@ If they agree, provide a unified response. If they disagree, identify the key di
             primary_response=consensus_response,
             supporting_response=f"Model 1: {response1[:300]}...\n\nModel 2: {response2[:300]}...",
             model_used=f"{model1.value} + {model2.value}",
-            supporting_model=AIModel.CLAUDE_3_OPUS.value,
+            supporting_model=AIModel.CLAUDE_4_1.value,
             collaboration_mode=CollaborationMode.CONSENSUS,
             confidence_score=0.9 if consensus_achieved else 0.7,
             consensus_achieved=consensus_achieved,
             metadata={
                 "execution_time": datetime.utcnow().isoformat(),
-                "consensus_evaluator": AIModel.CLAUDE_3_OPUS.value
+                "consensus_evaluator": AIModel.CLAUDE_4_1.value
             }
         )
     
@@ -394,50 +426,50 @@ If they agree, provide a unified response. If they disagree, identify the key di
         
         # Determine specializations needed
         if request.task_type == TaskType.CODE:
-            # Claude handles code logic
+            # Claude 3.5 Sonnet handles code logic (best for code)
             code_response = await self.call_claude(
                 f"Provide code implementation for: {request.prompt}",
-                AIModel.CLAUDE_3_SONNET,
+                AIModel.CLAUDE_4_1,
                 request.max_tokens,
                 request.temperature
             )
             responses["code"] = code_response
             
-            # Gemini handles documentation
+            # Gemini 2.0 handles documentation
             doc_response = await self.call_gemini(
                 f"Write clear documentation for this code:\n{code_response[:1000]}",
-                AIModel.GEMINI_1_5_FLASH,
+                AIModel.GEMINI_2_5_PRO,
                 512,
                 0.7
             )
             responses["documentation"] = doc_response
             
             final_response = f"**Implementation:**\n{code_response}\n\n**Documentation:**\n{doc_response}"
-            primary_model = AIModel.CLAUDE_3_SONNET.value
-            supporting_model = AIModel.GEMINI_1_5_FLASH.value
+            primary_model = AIModel.CLAUDE_4_1.value
+            supporting_model = AIModel.GEMINI_2_5_PRO.value
             
         elif request.task_type == TaskType.ANALYSIS:
-            # Claude does deep analysis
+            # Claude 3.5 Sonnet does deep analysis
             analysis = await self.call_claude(
                 f"Provide detailed analysis: {request.prompt}",
-                AIModel.CLAUDE_3_OPUS,
+                AIModel.CLAUDE_4_1,
                 request.max_tokens,
                 0.5
             )
             responses["analysis"] = analysis
             
-            # Gemini provides quick summary
+            # Gemini 2.0 provides quick summary
             summary = await self.call_gemini(
                 f"Summarize this analysis in bullet points:\n{analysis[:1500]}",
-                AIModel.GEMINI_1_5_FLASH,
+                AIModel.GEMINI_2_5_PRO,
                 512,
                 0.7
             )
             responses["summary"] = summary
             
             final_response = f"**Analysis:**\n{analysis}\n\n**Summary:**\n{summary}"
-            primary_model = AIModel.CLAUDE_3_OPUS.value
-            supporting_model = AIModel.GEMINI_1_5_FLASH.value
+            primary_model = AIModel.CLAUDE_4_1.value
+            supporting_model = AIModel.GEMINI_2_5_PRO.value
             
         else:
             # Default specialized handling
@@ -572,9 +604,9 @@ async def execute_workflow(workflow: CollaborativeWorkflow):
 @app.post("/compare")
 async def compare_models(request: OrchestrationRequest):
     """Compare responses from different models"""
-    # Get responses from both Claude and Gemini
-    claude_models = [AIModel.CLAUDE_3_OPUS, AIModel.CLAUDE_3_SONNET]
-    gemini_models = [AIModel.GEMINI_1_5_PRO, AIModel.GEMINI_1_5_FLASH]
+    # Get responses from both Claude and Gemini latest models
+    claude_models = [AIModel.CLAUDE_4_1, AIModel.CLAUDE_3_OPUS]
+    gemini_models = [AIModel.GEMINI_2_5_PRO, AIModel.GEMINI_1_5_PRO]
     
     comparisons = []
     
