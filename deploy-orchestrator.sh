@@ -57,7 +57,23 @@ if ! gcloud secrets describe gemini-api-key --project=$PROJECT_ID >/dev/null 2>&
     exit 1
 fi
 
-echo "✅ Secrets found"
+# Check for OpenAI API key
+if ! gcloud secrets describe openai-api-key --project=$PROJECT_ID >/dev/null 2>&1; then
+    echo "⚠️  Warning: openai-api-key secret not found (optional)"
+    echo "   To enable ChatGPT models, create it with: gcloud secrets create openai-api-key --data-file=-"
+else
+    echo "✅ openai-api-key found"
+fi
+
+# Check for Grok API key
+if ! gcloud secrets describe grok-api-key --project=$PROJECT_ID >/dev/null 2>&1; then
+    echo "⚠️  Warning: grok-api-key secret not found (optional)"
+    echo "   To enable Grok models, create it with: gcloud secrets create grok-api-key --data-file=-"
+else
+    echo "✅ grok-api-key found"
+fi
+
+echo "✅ Required secrets found"
 
 # Check if service account exists
 SERVICE_ACCOUNT="claude-gemini-service-account@$PROJECT_ID.iam.gserviceaccount.com"
@@ -97,7 +113,7 @@ gcloud run deploy $SERVICE_NAME \
     --region $REGION \
     --allow-unauthenticated \
     --set-env-vars="GCP_PROJECT_ID=$PROJECT_ID" \
-    --set-secrets="ANTHROPIC_API_KEY=anthropic-api-key:latest,GEMINI_API_KEY=gemini-api-key:latest" \
+    --update-secrets="ANTHROPIC_API_KEY=anthropic-api-key:latest,GEMINI_API_KEY=gemini-api-key:latest,OPENAI_API_KEY=openai-api-key:latest,GROK_API_KEY=grok-api-key:latest" \
     --service-account="$SERVICE_ACCOUNT" \
     --memory=4Gi \
     --cpu=2 \

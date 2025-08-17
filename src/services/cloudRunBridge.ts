@@ -61,7 +61,7 @@ export class CloudRunBridge {
         
         // Default URLs - can be localhost for development or Cloud Run URLs for production
         const defaultOrchestrator = config.get<boolean>('useLocalServices', true) 
-            ? 'http://localhost:8080'
+            ? 'http://localhost:8081'
             : config.get<string>('orchestratorUrl', 'https://claude-gemini-orchestrator-xxxxx.run.app');
 
         return {

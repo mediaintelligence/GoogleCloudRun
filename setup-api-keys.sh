@@ -70,6 +70,45 @@ else
     echo "✅ gemini-api-key created successfully"
 fi
 
+# Check for OpenAI API key
+if gcloud secrets describe openai-api-key --project=$PROJECT_ID >/dev/null 2>&1; then
+    echo "✅ openai-api-key already exists"
+else
+    echo "🔑 Creating openai-api-key secret..."
+    echo "Please paste your OpenAI API key and press Enter:"
+    read -s OPENAI_KEY
+    
+    if [ -z "$OPENAI_KEY" ]; then
+        echo "❌ Error: API key cannot be empty"
+        exit 1
+    fi
+    
+    echo "$OPENAI_KEY" | gcloud secrets create openai-api-key \
+        --data-file=- \
+        --project=$PROJECT_ID
+    
+    echo "✅ openai-api-key created successfully"
+fi
+
+# Check for Grok/X.AI API key
+if gcloud secrets describe grok-api-key --project=$PROJECT_ID >/dev/null 2>&1; then
+    echo "✅ grok-api-key already exists"
+else
+    echo "🔑 Creating grok-api-key secret (optional)..."
+    echo "Please paste your Grok/X.AI API key and press Enter (or press Enter to skip):"
+    read -s GROK_KEY
+    
+    if [ ! -z "$GROK_KEY" ]; then
+        echo "$GROK_KEY" | gcloud secrets create grok-api-key \
+            --data-file=- \
+            --project=$PROJECT_ID
+        
+        echo "✅ grok-api-key created successfully"
+    else
+        echo "⚠️  Skipping Grok API key (optional)"
+    fi
+fi
+
 echo ""
 echo "==========================================="
 echo "✅ API Keys setup complete!"
@@ -80,3 +119,5 @@ echo ""
 echo "To get your API keys:"
 echo "  - Anthropic: https://console.anthropic.com/"
 echo "  - Gemini: https://makersuite.google.com/app/apikey"
+echo "  - OpenAI: https://platform.openai.com/api-keys"
+echo "  - Grok/X.AI: https://x.ai/ (when available)"

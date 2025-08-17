@@ -46,27 +46,18 @@ app.add_middleware(
 
 # Model types - Custom Configuration as Requested
 class AIModel(str, Enum):
-    # Claude Models - Using requested naming
-    CLAUDE_4_1 = "claude-3-5-sonnet-20241022"  # Maps to Claude 3.5 Sonnet (latest available)
-    SONNET_4_0 = "claude-3-5-sonnet-20241022"  # Maps to Claude 3.5 Sonnet
-    CLAUDE_3_OPUS = "claude-3-opus-20240229"  # Most capable classic
-    CLAUDE_3_HAIKU = "claude-3-haiku-20240307"  # Fastest
+    # Claude Models - EXACT naming as requested
+    CLAUDE_4_1 = "Claude4.1"  # Maps to Claude 3.5 Sonnet (latest available)
+    SONNET_4_0 = "Anthropic Sonnet4.0"  # Maps to Claude 3.5 Sonnet
     
-    # Gemini Models - Using requested naming  
-    GEMINI_2_5_PRO = "gemini-2.0-flash-exp"  # Maps to Gemini 2.0 Flash (latest available)
-    GEMINI_2_0_FLASH = "gemini-2.0-flash-exp"  # Latest Gemini 2.0
-    GEMINI_1_5_PRO = "gemini-1.5-pro-002"  # Latest 1.5 Pro
-    GEMINI_1_5_FLASH = "gemini-1.5-flash-002"  # Latest 1.5 Flash
+    # Gemini Models - EXACT naming as requested  
+    GEMINI_2_5_PRO = "GEMINI 2.5 pro"  # Maps to Gemini 2.0 Flash (latest available)
     
-    # OpenAI Models (ChatGPT) - Using requested naming
-    CHATGPT_5 = "gpt-4-turbo-preview"  # Maps to GPT-4 Turbo (latest available)
-    GPT_4_TURBO = "gpt-4-turbo-preview"  # GPT-4 Turbo
-    GPT_4 = "gpt-4"  # Standard GPT-4
-    GPT_3_5_TURBO = "gpt-3.5-turbo"  # GPT-3.5 Turbo
+    # OpenAI Models (ChatGPT) - EXACT naming as requested
+    CHATGPT_5 = "ChatGPT5"  # Maps to GPT-4 Turbo (latest available)
     
-    # Grok Models - Using requested naming
-    GROK_4_HEAVY = "grok-beta"  # Maps to Grok API (when available)
-    GROK_2 = "grok-2-beta"  # Grok 2 model
+    # Grok Models - EXACT naming as requested
+    GROK_4_HEAVY = "Grok4Heavy"  # Maps to Grok API
 
 class TaskType(str, Enum):
     ANALYSIS = "analysis"
@@ -156,95 +147,58 @@ class AIOrchestrator:
             logger.warning("GROK_API_KEY/XAI_API_KEY not found")
             self.grok_client = None
         
-        # Model capabilities matrix - Updated for latest models
+        # Model capabilities matrix - Updated for exact model names
         self.model_capabilities = {
             AIModel.CLAUDE_4_1: {
                 "strengths": ["reasoning", "code", "analysis", "creative", "latest"],
                 "context_window": 200000,
                 "speed": "fast",
                 "cost": "medium",
-                "version": "3.5"
+                "version": "4.1",
+                "actual_model": "claude-3-5-sonnet-20241022"
             },
-            AIModel.CLAUDE_3_OPUS: {
+            AIModel.SONNET_4_0: {
                 "strengths": ["reasoning", "analysis", "code", "creative"],
                 "context_window": 200000,
-                "speed": "slow",
-                "cost": "high",
-                "version": "3.0"
-            },
-            AIModel.CLAUDE_3_HAIKU: {
-                "strengths": ["speed", "simple_tasks"],
-                "context_window": 200000,
-                "speed": "very_fast",
-                "cost": "low",
-                "version": "3.0"
+                "speed": "fast",
+                "cost": "medium",
+                "version": "4.0",
+                "actual_model": "claude-3-5-sonnet-20241022"
             },
             AIModel.GEMINI_2_5_PRO: {
                 "strengths": ["latest", "speed", "multimodal", "reasoning"],
                 "context_window": 1000000,
                 "speed": "very_fast",
                 "cost": "low",
-                "version": "2.0"
-            },
-            AIModel.GEMINI_1_5_PRO: {
-                "strengths": ["vision", "multimodal", "long_context"],
-                "context_window": 2000000,
-                "speed": "medium",
-                "cost": "medium",
-                "version": "1.5"
-            },
-            AIModel.GEMINI_1_5_FLASH: {
-                "strengths": ["speed", "efficiency"],
-                "context_window": 1000000,
-                "speed": "very_fast",
-                "cost": "low",
-                "version": "1.5"
+                "version": "2.5",
+                "actual_model": "gemini-2.0-flash-exp"
             },
             AIModel.CHATGPT_5: {
                 "strengths": ["reasoning", "code", "analysis", "creative", "latest"],
                 "context_window": 128000,
                 "speed": "fast",
                 "cost": "high",
-                "version": "5.0"
-            },
-            AIModel.GPT_4_TURBO: {
-                "strengths": ["reasoning", "code", "analysis", "creative"],
-                "context_window": 128000,
-                "speed": "fast",
-                "cost": "high",
-                "version": "4.0-turbo"
-            },
-            AIModel.GPT_3_5_TURBO: {
-                "strengths": ["speed", "efficiency", "general"],
-                "context_window": 16384,
-                "speed": "very_fast",
-                "cost": "low",
-                "version": "3.5-turbo"
+                "version": "5.0",
+                "actual_model": "gpt-4-turbo-preview"
             },
             AIModel.GROK_4_HEAVY: {
                 "strengths": ["reasoning", "analysis", "real-time", "humor"],
                 "context_window": 100000,
                 "speed": "medium",
                 "cost": "medium",
-                "version": "4.0-heavy"
-            },
-            AIModel.GROK_2: {
-                "strengths": ["speed", "real-time", "conversational"],
-                "context_window": 100000,
-                "speed": "fast",
-                "cost": "low",
-                "version": "2.0"
+                "version": "4.0-heavy",
+                "actual_model": "grok-beta"
             }
         }
         
         self.task_model_mapping = {
             TaskType.ANALYSIS: [AIModel.CLAUDE_4_1, AIModel.CHATGPT_5, AIModel.GROK_4_HEAVY, AIModel.GEMINI_2_5_PRO],
-            TaskType.CODE: [AIModel.SONNET_4_0, AIModel.CHATGPT_5, AIModel.CLAUDE_4_1, AIModel.GPT_4_TURBO],
-            TaskType.VISION: [AIModel.GEMINI_2_5_PRO, AIModel.GPT_4_TURBO, AIModel.GEMINI_1_5_PRO],
+            TaskType.CODE: [AIModel.SONNET_4_0, AIModel.CHATGPT_5, AIModel.CLAUDE_4_1],
+            TaskType.VISION: [AIModel.GEMINI_2_5_PRO, AIModel.CHATGPT_5],
             TaskType.REASONING: [AIModel.CLAUDE_4_1, AIModel.CHATGPT_5, AIModel.GROK_4_HEAVY, AIModel.GEMINI_2_5_PRO],
-            TaskType.CREATIVE: [AIModel.SONNET_4_0, AIModel.CHATGPT_5, AIModel.GEMINI_2_5_PRO, AIModel.GROK_2],
-            TaskType.TRANSLATION: [AIModel.GEMINI_2_5_PRO, AIModel.GPT_3_5_TURBO, AIModel.CLAUDE_3_HAIKU],
-            TaskType.SUMMARIZATION: [AIModel.GPT_3_5_TURBO, AIModel.GEMINI_2_0_FLASH, AIModel.GROK_2, AIModel.CLAUDE_3_HAIKU]
+            TaskType.CREATIVE: [AIModel.SONNET_4_0, AIModel.CHATGPT_5, AIModel.GEMINI_2_5_PRO],
+            TaskType.TRANSLATION: [AIModel.GEMINI_2_5_PRO, AIModel.CHATGPT_5, AIModel.CLAUDE_4_1],
+            TaskType.SUMMARIZATION: [AIModel.CHATGPT_5, AIModel.GEMINI_2_5_PRO, AIModel.GROK_4_HEAVY]
         }
     
     def select_optimal_model(self, task_type: TaskType, context: Dict[str, Any] = None) -> AIModel:
@@ -257,10 +211,6 @@ class AIOrchestrator:
                 # Prefer faster models
                 if AIModel.GEMINI_2_5_PRO in preferred_models:
                     return AIModel.GEMINI_2_5_PRO
-                elif AIModel.GEMINI_1_5_FLASH in preferred_models:
-                    return AIModel.GEMINI_1_5_FLASH
-                elif AIModel.CLAUDE_3_HAIKU in preferred_models:
-                    return AIModel.CLAUDE_3_HAIKU
             
             if context.get("require_accuracy"):
                 # Prefer more capable models
@@ -268,8 +218,6 @@ class AIOrchestrator:
                     return AIModel.CLAUDE_4_1
                 elif AIModel.SONNET_4_0 in preferred_models:
                     return AIModel.SONNET_4_0
-                elif AIModel.CLAUDE_3_OPUS in preferred_models:
-                    return AIModel.CLAUDE_3_OPUS
                 elif AIModel.GEMINI_2_5_PRO in preferred_models:
                     return AIModel.GEMINI_2_5_PRO
             
@@ -290,8 +238,10 @@ class AIOrchestrator:
             raise HTTPException(status_code=500, detail="Claude API not configured")
         
         try:
+            # Get actual model identifier
+            actual_model = self.model_capabilities[model].get("actual_model", "claude-3-5-sonnet-20241022")
             message = self.claude_client.messages.create(
-                model=model.value,
+                model=actual_model,
                 max_tokens=max_tokens,
                 temperature=temperature,
                 messages=[{"role": "user", "content": prompt}]
@@ -307,16 +257,11 @@ class AIOrchestrator:
             raise HTTPException(status_code=500, detail="OpenAI API not configured")
         
         try:
-            # Map to actual OpenAI model names
-            model_mapping = {
-                AIModel.CHATGPT_5: "gpt-4-turbo-preview",
-                AIModel.GPT_4_TURBO: "gpt-4-turbo-preview",
-                AIModel.GPT_4: "gpt-4",
-                AIModel.GPT_3_5_TURBO: "gpt-3.5-turbo"
-            }
+            # Get actual model identifier
+            actual_model = self.model_capabilities[model].get("actual_model", "gpt-4-turbo-preview")
             
             response = self.openai_client.chat.completions.create(
-                model=model_mapping.get(model, "gpt-4-turbo-preview"),
+                model=actual_model,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
                 temperature=temperature
@@ -332,14 +277,11 @@ class AIOrchestrator:
             raise HTTPException(status_code=500, detail="Grok API not configured")
         
         try:
-            # Map to actual Grok model names
-            model_mapping = {
-                AIModel.GROK_4_HEAVY: "grok-beta",
-                AIModel.GROK_2: "grok-2-beta"
-            }
+            # Get actual model identifier
+            actual_model = self.model_capabilities[model].get("actual_model", "grok-beta")
             
             response = self.grok_client.chat.completions.create(
-                model=model_mapping.get(model, "grok-beta"),
+                model=actual_model,
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
                 temperature=temperature
@@ -355,17 +297,11 @@ class AIOrchestrator:
             raise HTTPException(status_code=500, detail="Gemini API not configured")
         
         try:
-            # Map to actual Gemini model names
-            model_mapping = {
-                AIModel.GEMINI_2_5_PRO: "gemini-2.0-flash-exp",
-                AIModel.GEMINI_1_5_PRO: "gemini-1.5-pro-002",
-                AIModel.GEMINI_1_5_FLASH: "gemini-1.5-flash-002",
-                AIModel.GEMINI_PRO: "gemini-pro",
-                AIModel.GEMINI_PRO_VISION: "gemini-pro-vision"
-            }
+            # Get actual model identifier
+            actual_model = self.model_capabilities[model].get("actual_model", "gemini-2.0-flash-exp")
             
             gemini_model = genai.GenerativeModel(
-                model_name=model_mapping.get(model, "gemini-2.0-flash-exp"),
+                model_name=actual_model,
                 generation_config={
                     "temperature": temperature,
                     "max_output_tokens": max_tokens,
@@ -388,13 +324,21 @@ class AIOrchestrator:
         
         # Execute in parallel
         tasks = []
-        if "claude" in primary_model.value:
+        if "Claude" in primary_model.value or "Sonnet" in primary_model.value:
             tasks.append(self.call_claude(request.prompt, primary_model, request.max_tokens, request.temperature))
+        elif "ChatGPT" in primary_model.value:
+            tasks.append(self.call_openai(request.prompt, primary_model, request.max_tokens, request.temperature))
+        elif "Grok" in primary_model.value:
+            tasks.append(self.call_grok(request.prompt, primary_model, request.max_tokens, request.temperature))
         else:
             tasks.append(self.call_gemini(request.prompt, primary_model, request.max_tokens, request.temperature))
         
-        if "claude" in secondary_model.value:
+        if "Claude" in secondary_model.value or "Sonnet" in secondary_model.value:
             tasks.append(self.call_claude(request.prompt, secondary_model, request.max_tokens, request.temperature))
+        elif "ChatGPT" in secondary_model.value:
+            tasks.append(self.call_openai(request.prompt, secondary_model, request.max_tokens, request.temperature))
+        elif "Grok" in secondary_model.value:
+            tasks.append(self.call_grok(request.prompt, secondary_model, request.max_tokens, request.temperature))
         else:
             tasks.append(self.call_gemini(request.prompt, secondary_model, request.max_tokens, request.temperature))
         
@@ -426,8 +370,12 @@ class AIOrchestrator:
         
         analysis_prompt = f"Analyze this request and provide key insights:\n{request.prompt}"
         
-        if "claude" in analysis_model.value:
+        if "Claude" in analysis_model.value or "Sonnet" in analysis_model.value:
             analysis = await self.call_claude(analysis_prompt, analysis_model, 1024, 0.5)
+        elif "ChatGPT" in analysis_model.value:
+            analysis = await self.call_openai(analysis_prompt, analysis_model, 1024, 0.5)
+        elif "Grok" in analysis_model.value:
+            analysis = await self.call_grok(analysis_prompt, analysis_model, 1024, 0.5)
         else:
             analysis = await self.call_gemini(analysis_prompt, analysis_model, 1024, 0.5)
         
@@ -440,8 +388,12 @@ class AIOrchestrator:
 Now provide a comprehensive response to the original request:
 {request.prompt}"""
         
-        if "claude" in synthesis_model.value:
+        if "Claude" in synthesis_model.value or "Sonnet" in synthesis_model.value:
             final_response = await self.call_claude(synthesis_prompt, synthesis_model, request.max_tokens, request.temperature)
+        elif "ChatGPT" in synthesis_model.value:
+            final_response = await self.call_openai(synthesis_prompt, synthesis_model, request.max_tokens, request.temperature)
+        elif "Grok" in synthesis_model.value:
+            final_response = await self.call_grok(synthesis_prompt, synthesis_model, request.max_tokens, request.temperature)
         else:
             final_response = await self.call_gemini(synthesis_prompt, synthesis_model, request.max_tokens, request.temperature)
         
@@ -592,8 +544,12 @@ If they agree, provide a unified response. If they disagree, identify the key di
             # Default specialized handling
             primary_model_enum = self.select_optimal_model(request.task_type, request.context)
             
-            if "claude" in primary_model_enum.value:
+            if "Claude" in primary_model_enum.value or "Sonnet" in primary_model_enum.value:
                 final_response = await self.call_claude(request.prompt, primary_model_enum, request.max_tokens, request.temperature)
+            elif "ChatGPT" in primary_model_enum.value:
+                final_response = await self.call_openai(request.prompt, primary_model_enum, request.max_tokens, request.temperature)
+            elif "Grok" in primary_model_enum.value:
+                final_response = await self.call_grok(request.prompt, primary_model_enum, request.max_tokens, request.temperature)
             else:
                 final_response = await self.call_gemini(request.prompt, primary_model_enum, request.max_tokens, request.temperature)
             
@@ -785,9 +741,9 @@ async def list_models():
     models_status = []
     
     for model in AIModel:
-        is_claude = "claude" in model.value.lower() or "sonnet" in model.value.lower()
-        is_openai = "gpt" in model.value.lower() or "chatgpt" in model.value.lower()
-        is_grok = "grok" in model.value.lower()
+        is_claude = "Claude" in model.value or "Sonnet" in model.value
+        is_openai = "ChatGPT" in model.value
+        is_grok = "Grok" in model.value
         
         if is_claude:
             is_configured = orchestrator.claude_client is not None
