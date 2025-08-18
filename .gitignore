@@ -83,3 +83,6 @@ venv/
 
 # Orchestrator
 .orchestrator.pid
+create-secrets.sh
+local-config.env
+*.env

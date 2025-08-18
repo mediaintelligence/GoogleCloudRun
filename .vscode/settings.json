@@ -1,0 +1,29 @@
+{
+  // Claude-Gemini Assistant Configuration
+  "claudeGeminiAssistant.orchestratorUrl": "https://claude-gemini-orchestrator-698171499447.us-central1.run.app",
+  "claudeGeminiAssistant.useLocalServices": false,
+  
+  // Model Preferences
+  "claudeGeminiAssistant.defaultModel": "GEMINI 2.5 pro",
+  "claudeGeminiAssistant.defaultTaskType": "code",
+  "claudeGeminiAssistant.defaultCollaborationMode": "specialized",
+  
+  // API Settings (for direct model access if needed)
+  "claudeGeminiAssistant.anthropicApiKey": "",
+  "claudeGeminiAssistant.geminiApiKey": "",
+  "claudeGeminiAssistant.openaiApiKey": "",
+  "claudeGeminiAssistant.grokApiKey": "",
+  
+  // Features
+  "claudeGeminiAssistant.enableAutoComplete": true,
+  "claudeGeminiAssistant.enableCodeActions": true,
+  "claudeGeminiAssistant.enableInlineChat": true,
+  
+  // Performance
+  "claudeGeminiAssistant.maxTokens": 2048,
+  "claudeGeminiAssistant.temperature": 0.7,
+  
+  // After Cloud Run deployment, update these:
+  // "claudeGeminiAssistant.orchestratorUrl": "https://your-cloud-run-url",
+  // "claudeGeminiAssistant.useLocalServices": false
+}
